@@ -1,0 +1,10 @@
+frontend/node_modules
+**/node_modules
+.git
+frontend/dist
+backend/staticfiles
+backend/media
+*.pyc
+__pycache__
+*.tar.gz
+easytrack_deploy.tar.gz

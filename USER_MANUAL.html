@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EasyTrack - Complete Platform User Manual & Administrator Guide</title>
+  <style>
+    :root {
+      --primary: #0d9488;
+      --primary-dark: #0f766e;
+      --primary-light: #ccfbf1;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --emerald-600: #059669;
+      --amber-600: #d97706;
+      --rose-600: #e11d48;
+      --indigo-600: #4f46e5;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      color: var(--slate-800);
+      background-color: var(--slate-50);
+      padding: 0;
+      margin: 0;
+    }
+    .top-banner {
+      background: linear-gradient(135deg, #0f766e 0%, #0f172a 100%);
+      color: white;
+      padding: 48px 24px;
+      text-align: center;
+      border-bottom: 4px solid var(--primary);
+    }
+    .top-banner h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 8px;
+    }
+    .top-banner p.subtitle {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      max-width: 800px;
+      margin: 0 auto 16px auto;
+    }
+    .top-banner .badge-group {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .container {
+      max-width: 1100px;
+      margin: -24px auto 60px auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+      padding: 48px;
+      border: 1px solid var(--slate-200);
+    }
+    .quick-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+    }
+    .btn-secondary {
+      background-color: var(--slate-100);
+      color: var(--slate-700);
+      border: 1px solid var(--slate-200);
+    }
+    .btn-secondary:hover {
+      background-color: var(--slate-200);
+    }
+    .toc {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 40px;
+    }
+    .toc h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 10px;
+      list-style: none;
+    }
+    .toc-grid a {
+      color: var(--primary-dark);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .toc-grid a:hover {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+    }
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-top: 48px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--slate-200);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--slate-800);
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+    h4 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--slate-700);
+      margin-top: 20px;
+      margin-bottom: 8px;
+    }
+    p, li {
+      color: var(--slate-600);
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+    ul, ol {
+      padding-left: 24px;
+      margin-bottom: 16px;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.92rem;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border: 1px solid var(--slate-200);
+    }
+    th {
+      background-color: var(--slate-100);
+      color: var(--slate-800);
+      font-weight: 700;
+    }
+    tr:nth-child(even) {
+      background-color: var(--slate-50);
+    }
+    .callout {
+      border-left: 4px solid var(--primary);
+      background-color: var(--primary-light);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+    }
+    .callout-title {
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 4px;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 24px 0;
+    }
+    .feature-card {
+      border: 1px solid var(--slate-200);
+      border-radius: 12px;
+      padding: 20px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .feature-card h4 {
+      margin-top: 0;
+      color: var(--slate-900);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88em;
+      background-color: var(--slate-100);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #b91c1c;
+      border: 1px solid var(--slate-200);
+    }
+    pre {
+      background-color: var(--slate-900);
+      color: #f8fafc;
+      padding: 16px 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      margin: 16px 0;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--slate-200);
+      color: var(--slate-500);
+      font-size: 0.85rem;
+    }
+    @media print {
+      body {
+        background: white;
+      }
+      .top-banner {
+        background: none;
+        color: black;
+        border-bottom: 2px solid #000;
+        padding: 20px 0;
+      }
+      .container {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        max-width: 100%;
+      }
+      .quick-actions, .badge-group {
+        display: none !important;
+      }
+      h2 {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-banner">
+    <h1>EasyTrack Platform User Manual</h1>
+    <p class="subtitle">Comprehensive Guide, Feature Documentation, and Standard Operating Procedures for Medical Billing Workforce & Operations Management</p>
+    <div class="badge-group">
+      <span class="badge">Version 2.0 Enterprise</span>
+      <span class="badge">Multi-Tenant Architecture</span>
+      <span class="badge">Role-Based Access Control</span>
+      <span class="badge">Single Active Session Security</span>
+      <span class="badge">Release: September 2026</span>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <div class="quick-actions">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+      <a class="btn btn-secondary" href="USER_MANUAL.md" download>📥 Download Raw Markdown</a>
+    </div>
+
+    <nav class="toc">
+      <h3>📑 Table of Contents</h3>
+      <ul class="toc-grid">
+        <li><a href="#section-1">1. Platform Overview & Architecture</a></li>
+        <li><a href="#section-2">2. Roles & Permissions Matrix</a></li>
+        <li><a href="#section-3">3. Authentication & Onboarding</a></li>
+        <li><a href="#section-4">4. Global UI & Universal Controls</a></li>
+        <li><a href="#section-5">5. Executive Suite: CEO Portal</a></li>
+        <li><a href="#section-6">6. Operations Head Workspace</a></li>
+        <li><a href="#section-7">7. Team Lead (TL) Portal</a></li>
+        <li><a href="#section-8">8. Human Resources (HR) Suite</a></li>
+        <li><a href="#section-9">9. Employee Self-Service Desk</a></li>
+        <li><a href="#section-10">10. Quality Assurance (QA) System</a></li>
+        <li><a href="#section-11">11. Communication & Announcements</a></li>
+        <li><a href="#section-12">12. Hardware Asset Management</a></li>
+        <li><a href="#section-13">13. Governance, Audit & Settings</a></li>
+        <li><a href="#section-14">14. Standard Operating Walkthroughs</a></li>
+        <li><a href="#section-15">15. Troubleshooting & FAQ</a></li>
+      </ul>
+    </nav>
+
+    <!-- SECTION 1 -->
+    <section id="section-1">
+      <h2>1. Platform Overview & Architecture</h2>
+      <p><strong>EasyTrack</strong> is an enterprise Multi-Tenant Software-as-a-Service (SaaS) application designed specifically for <strong>Medical Billing Workforce & Operations Management</strong>. It combines workforce lifecycle management (HRMS), daily claim batch execution, client SLA monitoring, quality assurance auditing, and financial payroll processing into a single integrated platform.</p>
+
+      <div class="callout">
+        <div class="callout-title">Core Architectural Pillars</div>
+        <p><strong>1. Multi-Tenancy Isolation:</strong> Data isolation is enforced at the database query level via <code>TenantModelViewSet</code>. Every company's data is isolated so no tenant can ever view another's records.<br>
+        <strong>2. Single Active Device Session:</strong> Prevents credential sharing and protects confidential Protected Health Information (PHI). If a user logs in from a second device, the previous session is immediately revoked with a "Session Superseded" notification.<br>
+        <strong>3. Privacy-First Messaging:</strong> 1-on-1 and team chats are restricted strictly to conversation participants. Executives cannot read private chats they are not part of, and audit logs record only metadata (timestamp and actors), never message content.<br>
+        <strong>4. Resilient Backend:</strong> Powered by Django REST Framework + PostgreSQL in production, with seamless fallback to SQLite for local development.</p>
+      </div>
+    </section>
+
+    <!-- SECTION 2 -->
+    <section id="section-2">
+      <h2>2. Roles & Permissions Matrix</h2>
+      <p>EasyTrack features 6 distinct operational roles with custom dashboards and granular permission controls:</p>
+
+      <div class="card-grid">
+        <div class="feature-card">
+          <h4>💼 1. CEO (Executive)</h4>
+          <p>Full organizational visibility, payroll final approval, compensation rules, high-level business analytics, and system governance.</p>
+        </div>
+        <div class="feature-card">
+          <h4>⚙️ 2. Operations Head</h4>
+          <p>Client portfolio management, billing process definitions, SOP management, work queue batch allocation, and SLA escalation resolution.</p>
+        </div>
+        <div class="feature-card">
+          <h4>👥 3. Team Lead (TL)</h4>
+          <p>Shift roster scheduling, team work allocation, task Kanban board, team attendance reviews, and leave recommendations.</p>
+        </div>
+        <div class="feature-card">
+          <h4>🤝 4. Human Resources (HR)</h4>
+          <p>Recruitment pipeline, 6-step employee onboarding clearance, attendance policy, leave approvals, hardware inventory, and monthly payroll execution.</p>
+        </div>
+        <div class="feature-card">
+          <h4>💻 5. Employee</h4>
+          <p>Active claim processing counter, blocker reporting, check-in/break/check-out time tracking, and the 8-in-1 My Desk self-service portal.</p>
+        </div>
+        <div class="feature-card">
+          <h4>🔍 6. QA Auditor</h4>
+          <p>Claim quality audits, compliance checklists, error classification (Minor/Major/Critical), and rework dispatch loop.</p>
+        </div>
+      </div>
+
+      <h3>Master Permissions Table</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Module / Portal</th>
+            <th>CEO</th>
+            <th>Operations Head</th>
+            <th>Team Lead (TL)</th>
+            <th>HR Manager</th>
+            <th>Employee</th>
+            <th>QA Auditor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Executive Dashboard</strong></td>
+            <td>View / Export</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Operations Dashboard</strong></td>
+            <td>View</td>
+            <td>Full Control</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Workforce & Access Control</strong></td>
+            <td>Full Control</td>
+            <td>Grant Access</td>
+            <td>View Team</td>
+            <td>Full Control</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Recruitment Pipeline</strong></td>
+            <td>View / Approve</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Full Control</td>
+            <td>View Openings</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>6-Step Onboarding</strong></td>
+            <td>View</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Full Control</td>
+            <td>Self-Service</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Client Portfolio & Projects</strong></td>
+            <td>Full Control</td>
+            <td>Full Control</td>
+            <td>View Assigned</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Work Queue & Claim Counter</strong></td>
+            <td>View</td>
+            <td>Full Control</td>
+            <td>Assign / Monitor</td>
+            <td>—</td>
+            <td>Execute Counter</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Attendance Punch Timer</strong></td>
+            <td>View All</td>
+            <td>View All</td>
+            <td>Review Team</td>
+            <td>Full Control</td>
+            <td>Punch & View Self</td>
+            <td>Punch & View Self</td>
+          </tr>
+          <tr>
+            <td><strong>Leave Management</strong></td>
+            <td>View All</td>
+            <td>View All</td>
+            <td>Recommend</td>
+            <td>Approve / Reject</td>
+            <td>Apply & Track</td>
+            <td>Apply & Track</td>
+          </tr>
+          <tr>
+            <td><strong>Monthly Payroll Engine</strong></td>
+            <td>Final Approve</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Process & Lock</td>
+            <td>View Payslip</td>
+            <td>View Payslip</td>
+          </tr>
+          <tr>
+            <td><strong>Hardware Asset Management</strong></td>
+            <td>View</td>
+            <td>View</td>
+            <td>—</td>
+            <td>Full Control</td>
+            <td>View Assigned</td>
+            <td>View Assigned</td>
+          </tr>
+          <tr>
+            <td><strong>QA Workspace & Audits</strong></td>
+            <td>View</td>
+            <td>View Trends</td>
+            <td>View Team QA</td>
+            <td>—</td>
+            <td>Rework Claims</td>
+            <td>Full Audit</td>
+          </tr>
+          <tr>
+            <td><strong>Private Chats</strong></td>
+            <td>Participant</td>
+            <td>Participant</td>
+            <td>Participant</td>
+            <td>Participant</td>
+            <td>Participant</td>
+            <td>Participant</td>
+          </tr>
+          <tr>
+            <td><strong>Announcements Board</strong></td>
+            <td>Publish</td>
+            <td>Read</td>
+            <td>Read</td>
+            <td>Publish</td>
+            <td>Read</td>
+            <td>Read</td>
+          </tr>
+          <tr>
+            <td><strong>Audit Logs & Revert</strong></td>
+            <td>Full Control</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 3 -->
+    <section id="section-3">
+      <h2>3. Authentication & Account Management</h2>
+      <p>EasyTrack provides a secure, streamlined authentication and credential lifecycle workflow:</p>
+      <ul>
+        <li><strong>Organization Registration (<code>/register</code>):</strong> A 3-step wizard allowing new healthcare providers or billing companies to create their tenant organization, configure timezone/currency, set standard working days, and provision the CEO account.</li>
+        <li><strong>Role-Based Login (<code>/login</code>):</strong> Features category switchers for <em>Organisation</em> (CEO, Ops Head, TL), <em>HR</em>, and <em>Employee</em> with show/hide password toggles.</li>
+        <li><strong>Password Recovery (OTP):</strong> Users enter their registered corporate email address to receive an instant One-Time Password (OTP) with mandatory password reset on next login.</li>
+        <li><strong>Single Active Device Session:</strong> Re-logging in from a different browser or machine instantly terminates the prior session with a security banner to protect PHI data.</li>
+        <li><strong>Access Control Modal:</strong> Administrators and HR Managers can provision credentials for staff with auto-generated passwords, role assignment, and login activation.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 4 -->
+    <section id="section-4">
+      <h2>4. Global UI & Universal Controls</h2>
+      <p>Every page in EasyTrack includes consistent header and layout tools:</p>
+      <div class="card-grid">
+        <div class="feature-card">
+          <h4>🔍 Global Staff Search</h4>
+          <p>Instant omnibar lookup by Employee ID, Name, Username, Corporate Email, Designation, Department, or Role.</p>
+        </div>
+        <div class="feature-card">
+          <h4>📅 Global Date Filter</h4>
+          <p>Dynamically synchronizes date filtering across dashboards, attendance logs, and billing metrics without page reload.</p>
+        </div>
+        <div class="feature-card">
+          <h4>⏱️ Employee Attendance Widget</h4>
+          <p>Header state machine: Check In ➔ Take Break ➔ Resume ➔ Check Out. Features a live elapsed time counter.</p>
+        </div>
+        <div class="feature-card">
+          <h4>🔔 Real-Time Notifications</h4>
+          <p>Notification bell with unread counters, slide-down panel, and desktop push alerts for critical SLAs and tasks.</p>
+        </div>
+        <div class="feature-card">
+          <h4>🎨 Theme & Accent Customizer</h4>
+          <p>Light/Dark mode toggle and 6 accent palettes: Sage (Default), Rose (HR), Indigo (CEO), Lavender, Peach, and Sky.</p>
+        </div>
+        <div class="feature-card">
+          <h4>🔊 Sound & Desktop Chimes</h4>
+          <p>Audio chimes for incoming chat messages and announcements with a master mute toggle in the top header.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5 -->
+    <section id="section-5">
+      <h2>5. Executive Suite: CEO Portal</h2>
+      <p>Accessible at <code>/ceo-dashboard</code>. Designed for strategic oversight, financial health, and governance:</p>
+      <ul>
+        <li><strong>Executive Telemetry Cards:</strong> Total Headcount, Active Staff, Attendance Rate for selected date, Monthly Base Payroll, Target Incentives Earned, and Active Client Projects.</li>
+        <li><strong>Business Portfolio Hub (<code>/portfolio</code>):</strong> Clients, Projects, and Financial burn rate vs projected revenue.</li>
+        <li><strong>Roles & Permissions Matrix (<code>/roles-permissions</code>):</strong> Fine-grained toggle of View, Create, Edit, Delete, Approve, and Export permissions across all 19 modules.</li>
+        <li><strong>Audit Logs & Revert (<code>/audit</code>):</strong> Complete tamper-evident log of all system actions with one-click action reversal.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 6 -->
+    <section id="section-6">
+      <h2>6. Operations Head Workspace</h2>
+      <p>Accessible at <code>/operations-dashboard</code>. Manages operational delivery, batch allocation, and client SLAs:</p>
+      <ul>
+        <li><strong>Clients Management (<code>/clients</code>):</strong> Create clients, assign Ops Heads and TLs, maintain contact details, and trigger operational check-in emails.</li>
+        <li><strong>Processes & SOPs (<code>/processes</code>):</strong> Configure standard billing workflows (Prior Auth, Claims, Denial Resolution), set daily quota targets, and maintain payer-specific SOP manuals.</li>
+        <li><strong>Work Queues & Batch Allocation (<code>/billing</code>):</strong> Assign work batches to Team Leads and billing executives with target quantities, priority ratings, and due dates.</li>
+        <li><strong>Escalations & SLA Management (<code>/escalations</code>):</strong> Review and resolve client escalations and investigate operational blockers.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 7 -->
+    <section id="section-7">
+      <h2>7. Team Lead (TL) Portal</h2>
+      <p>Accessible at <code>/tl-dashboard</code>. Coordinates daily team execution and workforce scheduling:</p>
+      <ul>
+        <li><strong>Shift Roster Scheduling (<code>/scheduling</code>):</strong> Assign Day (08:00–17:00), Evening (14:00–23:00), or Night (22:00–07:00) shifts to team members.</li>
+        <li><strong>Task Kanban Board (<code>/tasks</code>):</strong> Track team tasks across To Do, In Progress, QA Review, and Completed stages.</li>
+        <li><strong>Attendance Oversight:</strong> Monitor punch times, active breaks, and investigate missed punches.</li>
+        <li><strong>Leave Recommendations:</strong> Review employee leave requests and add recommendation notes before HR approval.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 8 -->
+    <section id="section-8">
+      <h2>8. Human Resources (HR) Management Suite</h2>
+      <p>Accessible at <code>/hr-dashboard</code>, <code>/talent</code>, and <code>/time-payroll</code>:</p>
+      <ul>
+        <li><strong>Recruitment Pipeline (<code>/recruitment</code>):</strong> Manage job openings and advance candidate cards through Applied, Screening, Interview, Selected, and Offer Released stages with one-click conversion to employee.</li>
+        <li><strong>6-Step Onboarding Clearance:</strong> Verify Personal Info, Position, Education, Bank Details, Document Checklist (ID, Marks, PAN, Certifications), and Declaration Sign-off.</li>
+        <li><strong>Central Leave Management:</strong> Review and approve/reject Casual, Sick, Earned, and Loss of Pay (LOP) leaves.</li>
+        <li><strong>Overtime Engine:</strong> Approve logged overtime hours with automated 1.5x and 2.0x rate multipliers.</li>
+        <li><strong>Monthly Payroll Processing:</strong> Calculate net salaries, lock the payroll cycle, generate digital payslips, and export bank disbursement CSV files.</li>
+        <li><strong>4-Department Exit Clearance (<code>/offboarding</code>):</strong> Coordinate Asset, HR, Security/IT, and Finance clearances during employee offboarding.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 9 -->
+    <section id="section-9">
+      <h2>9. Employee Self-Service & Daily Operations</h2>
+      <p>Accessible at <code>/employee-dashboard</code>, <code>/my-desk</code>, and <code>/billing</code>:</p>
+      <ul>
+        <li><strong>Interactive Claim Counter:</strong> Real-time <code>+</code> button to increment completed claims against assigned batch targets with auto-save.</li>
+        <li><strong>Report Blocker:</strong> Submit alerts for portal downtime or missing demographics to pause SLA timers.</li>
+        <li><strong>My Desk (8-in-1 Portal):</strong>
+          <ol>
+            <li><strong>My Attendance:</strong> View daily punch timestamps, break durations, and active hours.</li>
+            <li><strong>Shift Calendar:</strong> View monthly assigned shift schedules.</li>
+            <li><strong>Holiday Calendar:</strong> View corporate holidays and apply for floating leaves.</li>
+            <li><strong>My Leave:</strong> Check remaining leave balance and submit leave applications.</li>
+            <li><strong>My Performance:</strong> Review KPI scorecards, target vs actual claim speeds, and appraisal goals.</li>
+            <li><strong>My Documents:</strong> Upload and review verified ID proofs, degrees, and billing certifications.</li>
+            <li><strong>My Assets:</strong> Review assigned laptops, serial numbers, chargers, and accessories.</li>
+            <li><strong>My Requests (Helpdesk):</strong> Submit HR support tickets for payroll, leave, or IT assistance.</li>
+          </ol>
+        </li>
+      </ul>
+    </section>
+
+    <!-- SECTION 10 -->
+    <section id="section-10">
+      <h2>10. Quality Assurance (QA) System</h2>
+      <p>Accessible at <code>/qa</code> and <code>/quality-management</code> for users with <code>qa_enabled = True</code>:</p>
+      <ul>
+        <li><strong>Claim Inspection Queue:</strong> Sample completed batches and verify billing codes, modifiers, and patient data.</li>
+        <li><strong>Error Categorization:</strong> Classify errors into Minor, Major, or Fatal/Critical severity levels.</li>
+        <li><strong>Rework Dispatch Loop:</strong> Automatically send flagged claims back to the billing executive with corrective instructions.</li>
+        <li><strong>Quality Trend Analytics:</strong> Departmental accuracy percentages and common denial root causes.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 11 -->
+    <section id="section-11">
+      <h2>11. Communication Hub & Announcements</h2>
+      <p>Accessible at <code>/communication</code>, <code>/chat</code>, and <code>/announcements</code>:</p>
+      <ul>
+        <li><strong>Secure 1-on-1 & Team Chats:</strong> Fully private, real-time messaging with participant-only access and audio chimes.</li>
+        <li><strong>Pinned Chats:</strong> Pin important colleagues or leadership channels to the top of your inbox.</li>
+        <li><strong>Announcements Board:</strong> Broadcast corporate alerts targeted to All Organization, Employees Only, Specific Roles, or Specific Teams with audio notification chimes.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 12 -->
+    <section id="section-12">
+      <h2>12. Hardware Asset Management & Inventory</h2>
+      <p>Accessible at <code>/asset-management</code>:</p>
+      <ul>
+        <li><strong>Hardware Inventory Register:</strong> Track laptops, desktops, monitors, asset tags, serial numbers, charger types, and assigned users.</li>
+        <li><strong>Issue Asset Form:</strong> Select employee, assign hardware, and complete the accessories checklist (Mouse, Keyboard, Bag, Headset, Cables).</li>
+        <li><strong>Asset Return & Maintenance:</strong> Manage maintenance states and verify returns during employee offboarding.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 13 -->
+    <section id="section-13">
+      <h2>13. Governance, Audit Logs & System Settings</h2>
+      <p>Accessible at <code>/audit</code> and <code>/settings</code>:</p>
+      <ul>
+        <li><strong>Centralized Audit Trail:</strong> Logs all critical events (Logins, Profile Updates, Batch Allocations, Payroll Locks, Deletions) with timestamps, actor IDs, IP addresses, and categories.</li>
+        <li><strong>One-Click Action Revert:</strong> Restore previous values for supported actions directly from the audit log.</li>
+        <li><strong>CSV Export:</strong> Download tamper-evident audit records for HIPAA and SOC 2 compliance reviews.</li>
+        <li><strong>Organization Settings:</strong> Configure business name, industry, timezone, currency, and standard working hours.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 14 -->
+    <section id="section-14">
+      <h2>14. Standard Operating Walkthroughs</h2>
+      <div class="card-grid">
+        <div class="feature-card">
+          <h4>Walkthrough 1: Employee Daily Routine</h4>
+          <p>1. Log in via <code>/login</code>.<br>
+          2. Click <strong>[ Check In ]</strong> in the top header.<br>
+          3. Go to <strong>My Work Queue</strong> (<code>/billing</code>) and increment your claim counter.<br>
+          4. Report blockers if external portals go down.<br>
+          5. Use <strong>[ Take Break ]</strong> and <strong>[ Resume ]</strong> as needed.<br>
+          6. Click <strong>[ Check Out ]</strong> at shift end.</p>
+        </div>
+        <div class="feature-card">
+          <h4>Walkthrough 2: HR Monthly Payroll</h4>
+          <p>1. Open <strong>Time & Payroll</strong> (<code>/time-payroll</code>).<br>
+          2. Review base salaries, approved OT, and incentives.<br>
+          3. Verify unpaid leave deductions.<br>
+          4. Click <strong>Lock Payroll Cycle</strong>.<br>
+          5. Click <strong>Generate Payslips</strong>.<br>
+          6. Click <strong>Export Bank Disbursement CSV</strong> for payment.</p>
+        </div>
+        <div class="feature-card">
+          <h4>Walkthrough 3: Team Lead Allocation</h4>
+          <p>1. Open <strong>Shift Roster</strong> (<code>/scheduling</code>) to assign weekly shifts.<br>
+          2. Open <strong>Work Allocation</strong> (<code>/billing</code>) to create batches.<br>
+          3. Set target quota, priority, and due dates.<br>
+          4. Track progression on the <strong>Tasks Kanban</strong>.<br>
+          5. Review attendance exceptions.</p>
+        </div>
+        <div class="feature-card">
+          <h4>Walkthrough 4: QA Audit & Rework</h4>
+          <p>1. Open <strong>QA Workspace</strong> (<code>/qa</code>).<br>
+          2. Select a completed batch from the queue.<br>
+          3. Audit billing codes and modifiers against guidelines.<br>
+          4. Log errors and assign severity.<br>
+          5. Click <strong>Dispatch Rework</strong> to return to executive.<br>
+          6. Re-inspect corrected claim and mark <strong>Approved</strong>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 15 -->
+    <section id="section-15">
+      <h2>15. Troubleshooting & FAQ</h2>
+      <ul>
+        <li><strong>What is "Session Superseded"?</strong><br>
+        EasyTrack allows only one active device session per user account to prevent PHI exposure. Logging in on a second device invalidates the previous session.</li>
+        <li><strong>Can administrators read private chats?</strong><br>
+        No. Chats are scoped strictly to conversation participants at the database level. Audit logs record only dispatch timestamps, never message text.</li>
+        <li><strong>How do I change my theme or sound settings?</strong><br>
+        Click your profile avatar to choose from 6 accent colors or toggle Dark Mode. Click the speaker icon in the header to toggle notification chimes.</li>
+        <li><strong>How do I correct an attendance punch error?</strong><br>
+        Navigate to <strong>My Desk ➔ My Requests</strong>, select <code>Attendance Correction</code>, enter the date and correct timestamps, and submit for HR verification.</li>
+      </ul>
+    </section>
+
+    <footer class="footer">
+      <p>EasyTrack: Medical Billing Workforce & Operations Management SaaS Platform</p>
+      <p>© 2026 EasyTrack SaaS. All rights reserved. Confidential & Proprietary Document.</p>
+    </footer>
+
+  </main>
+
+</body>
+</html>

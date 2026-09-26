@@ -1,0 +1,77 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: easytrack_db
+    restart: always
+    environment:
+      POSTGRES_DB: easytrack_db
+      POSTGRES_USER: easytrack_user
+      POSTGRES_PASSWORD: easytrack_pass_2026
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U easytrack_user -d easytrack_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: easytrack_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - backend/.env
+    environment:
+      - DB_NAME=easytrack_db
+      - DB_USER=easytrack_user
+      - DB_PASSWORD=easytrack_pass_2026
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers 3 config.wsgi:application"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: easytrack_frontend
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - backend
+
+  adminer:
+    image: adminer:latest
+    container_name: easytrack_adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+    name: easytrack_production_postgres_data
+  static_volume:
+    name: easytrack_production_static_volume
+  media_volume:
+    name: easytrack_production_media_volume

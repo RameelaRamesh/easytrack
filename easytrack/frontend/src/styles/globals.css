@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'DM Sans', sans-serif;
+    @apply antialiased text-slate-800 dark:text-slate-100 bg-gray-50 dark:bg-slate-900;
+  }
+}
+
+/* Custom theme variables if needed */
+:root {
+  --radius-card: 12px;
+}
+
+/* Strict Spacing System (8px Grid Rules) */
+.space-8 { margin: 8px; }
+.space-16 { margin: 16px; }
+.space-24 { margin: 24px; }
+.space-32 { margin: 32px; }
+
+/* Controlled typography scale and weights mapping to 400, 500, 600, 700 */
+h1, .h1 {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 1.75rem; /* 28px */
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+h2, .h2 {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1.25rem; /* 20px */
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+h3, .h3 {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1rem; /* 16px */
+  line-height: 1.4;
+}
+
+h4, .h4 {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.45;
+}
+
+.text-xs {
+  font-size: 0.75rem; /* 12px */
+  line-height: 1.5;
+}
+
+.text-sm {
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.5;
+}
+
+.text-base {
+  font-size: 1rem; /* 16px */
+  line-height: 1.6;
+}
+
+/* Equal Card Heights & Premium Shadowing */
+.equal-card-grid {
+  display: grid;
+  grid-auto-rows: 1fr;
+}

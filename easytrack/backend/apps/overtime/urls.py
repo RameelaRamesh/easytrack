@@ -1,0 +1,10 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import OvertimeRequestViewSet
+
+router = DefaultRouter()
+router.register(r'', OvertimeRequestViewSet, basename='overtime')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
