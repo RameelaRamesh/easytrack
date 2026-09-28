@@ -535,6 +535,25 @@ export const Dashboard: React.FC = () => {
             </h4>
 
             <div className="space-y-2.5">
+              {/* Quick Action 0: Profile Setup */}
+              <Link
+                to="/profile-setup"
+                className="p-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-750 border border-gray-200 dark:border-slate-700 rounded-xl flex items-center justify-between transition group"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 rounded-lg">
+                    <UserCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-white group-hover:text-brand-primary transition">
+                      Profile Setup & KYC
+                    </p>
+                    <p className="text-[10px] text-slate-400">Personal details, bank info & document submission</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition" />
+              </Link>
+
               {/* Quick Action 1: Apply For Leave */}
               <Link
                 to="/my-desk?tab=leave&action=apply"

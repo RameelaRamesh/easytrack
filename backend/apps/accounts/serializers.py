@@ -65,6 +65,13 @@ class CEORegistrationSerializer(serializers.Serializer):
             raise serializers.ValidationError("A user with this username already exists.")
         return value
 
+    def validate_email(self, value):
+        if value and value.strip():
+            clean_email = value.strip().lower()
+            if User.objects.filter(email__iexact=clean_email).exists():
+                raise serializers.ValidationError("Email already exists.")
+        return value
+
     def validate_org_name(self, value):
         if Organization.objects.filter(name=value).exists():
             raise serializers.ValidationError("An organization with this name already exists.")

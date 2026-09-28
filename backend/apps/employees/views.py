@@ -41,11 +41,18 @@ class EmployeeViewSet(TenantModelViewSet):
 
         # Scoping based on role:
         # Admin / CEO / HR / Operations Head can access employee profiles in their organization.
-        # TL and regular employees do not have employee directory access.
+        # TL can access employees reporting to them, in their department, or themselves.
+        # Employees only see their own profile.
         if user.role in ['admin', 'ceo', 'hr', 'operations_head'] or getattr(user, 'is_owner', False):
             if self.request.query_params.get('exclude_ceo') == 'true':
                 qs = qs.exclude(user__role__in=['ceo', 'admin'])
             return qs
+        elif user.role == 'tl':
+            dept = getattr(getattr(user, 'employee_profile', None), 'department', None)
+            q = models.Q(manager=user) | models.Q(user=user)
+            if dept:
+                q |= models.Q(department=dept)
+            return qs.filter(q)
         else:
             return qs.filter(user=user)
 
@@ -76,11 +83,19 @@ class EmployeeViewSet(TenantModelViewSet):
     @action(detail=False, methods=['get'], url_path='me', serializer_class=EmployeeSerializer)
     def my_profile(self, request):
         """
-        Retrieve details of the currently logged-in employee profile.
+        Retrieve or auto-create details of the currently logged-in employee profile.
         """
         try:
-            employee = Employee.objects.get(user=request.user)
+            employee, _ = Employee.objects.get_or_create(
+                user=request.user,
+                defaults={
+                    'organization': request.user.organization,
+                    'employee_id': f"EMP-{request.user.id}",
+                    'department': 'Operations',
+                    'designation': 'Staff',
+                }
+            )
             serializer = self.get_serializer(employee)
             return Response(serializer.data)
-        except Employee.DoesNotExist:
-            return Response({"error": "No profile exists for this account."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

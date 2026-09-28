@@ -26,24 +26,21 @@ def ensure_default_accounts():
                 currency="INR"
             )
 
-        # Only create demo accounts if DB is completely empty
-        if User.objects.count() == 0:
-            demo_accounts = [
-                ('ceo11', 'admin', True, True, 'CEO', 'Executive'),
-                ('ceo', 'admin', True, True, 'CEO', 'Executive'),
-                ('ops_head', 'admin', False, False, 'Operations', 'Head'),
-                ('opshead', 'admin', False, False, 'Operations', 'Head'),
-                ('hr', 'hr', False, False, 'HR', 'Manager'),
-                ('hrmanager', 'hr', False, False, 'HR', 'Manager'),
-                ('tl', 'tl', False, False, 'Team', 'Lead'),
-                ('empid_1', 'employee', False, False, 'Employee', 'One'),
-                ('100240', 'employee', False, False, 'Lokeshwari', 'A'),
-            ]
+        # Ensure clean base portal accounts exist for each portal with unique emails
+        portal_accounts = [
+            ('ceo', 'admin', True, True, 'CEO', 'Executive', 'ceo@vattarasolutions.com', 'ceo2026'),
+            ('ops_head', 'admin', False, False, 'Operations', 'Head', 'ops_head@vattarasolutions.com', 'ops2026'),
+            ('hr', 'hr', False, False, 'HR', 'Manager', 'hr@vattarasolutions.com', 'hr2026'),
+            ('tl', 'tl', False, False, 'Team', 'Lead', 'tl@vattarasolutions.com', 'tl2026'),
+            ('employee', 'employee', False, False, 'Employee', 'One', 'employee@vattarasolutions.com', 'emp2026'),
+        ]
 
-            for username, role, is_owner, has_finance, first_name, last_name in demo_accounts:
-                User.objects.create_user(
+        for username, role, is_owner, has_finance, first_name, last_name, email, default_pass in portal_accounts:
+            user = User.objects.filter(username__iexact=username).first()
+            if not user:
+                user = User.objects.create_user(
                     username=username,
-                    email='operations@vattara.com',
+                    email=email,
                     first_name=first_name,
                     last_name=last_name,
                     role=role,
@@ -53,6 +50,21 @@ def ensure_default_accounts():
                     is_active=True,
                     must_change_password=False
                 )
+                user.set_password(default_pass)
+                user.save()
+            else:
+                u_save = False
+                if not user.organization:
+                    user.organization = org
+                    u_save = True
+                if not user.is_active:
+                    user.is_active = True
+                    u_save = True
+                if not user.email and not User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+                    user.email = email
+                    u_save = True
+                if u_save:
+                    user.save()
 
         # Auto-heal all existing user accounts in database
         for user in User.objects.all():
@@ -193,21 +205,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 user_obj = candidate
                 break
 
-        # Fallback for live password auto-healing/sync if no exact password hash matched
         if not user_obj:
-            user_obj = candidates[0]
-            if user_obj.username.lower() == 'vaishnavi' and password in ['Vaishnavi@18', 'password']:
-                user_obj.set_password(password)
-                user_obj.must_change_password = False
-                user_obj.save()
-            elif password in ['password', '123456', 'EasyTrack2026!', 'hr2026', 'ops2026', 'tl2026', 'ceo2026', 'admin2026']:
-                user_obj.set_password(password)
-                user_obj.must_change_password = False
-                user_obj.save()
-            elif password and len(password) >= 1:
-                user_obj.set_password(password)
-                user_obj.must_change_password = False
-                user_obj.save()
+            raise serializers.ValidationError({"password": ["Invalid password. Please check your credentials."]})
 
         self.user = user_obj
         attrs[self.username_field] = user_obj.username
@@ -539,6 +538,14 @@ class GiveAccessView(views.APIView):
             allowed_roles = ['employee']
         else:
             return Response({"error": "You do not have permission to grant access or generate passwords."}, status=status.HTTP_403_FORBIDDEN)
+
+        if email:
+            email_clean = email.strip().lower()
+            email_qs = User.objects.filter(email__iexact=email_clean)
+            if target_id:
+                email_qs = email_qs.exclude(pk=target_id)
+            if email_qs.exists():
+                return Response({"error": "Email already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
         target_user = None
         if target_id:

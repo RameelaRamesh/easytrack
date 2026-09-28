@@ -93,15 +93,39 @@ export function formatDuration(sec?: number): string {
   if (!sec || sec <= 0) return '0 mins';
   const hours = Math.floor(sec / 3600);
   const mins = Math.floor((sec % 3600) / 60);
+  const remSec = Math.floor(sec % 60);
   if (hours > 0) {
     return `${hours}h ${mins}m`;
   }
-  return `${mins} mins`;
+  if (mins > 0) {
+    return `${mins} ${mins === 1 ? 'min' : 'mins'}`;
+  }
+  return `${remSec}s`;
+}
+
+/**
+ * Calculates effective break seconds in real-time.
+ * Includes total_break_seconds plus ongoing break duration if status is 'on_break'.
+ */
+export function getEffectiveBreakSeconds(record?: {
+  status?: string | null;
+  total_break_seconds?: number;
+  break_start?: string | null;
+}): number {
+  if (!record) return 0;
+  let totalBreakSec = record.total_break_seconds || 0;
+  if (record.status === 'on_break' && record.break_start) {
+    const breakStartTime = new Date(record.break_start).getTime();
+    if (!isNaN(breakStartTime)) {
+      totalBreakSec += Math.max(0, Math.floor((Date.now() - breakStartTime) / 1000));
+    }
+  }
+  return totalBreakSec;
 }
 
 /**
  * Calculates effective working seconds in real-time.
- * If shift is completed (checked_out), returns total_working_seconds.
+ * If shift is completed (checked_out), returns total_working_seconds or computes elapsed time between check_in and check_out minus total_break_seconds.
  * If currently working or on_break, computes elapsed time from check_in minus total_break_seconds.
  */
 export function getEffectiveWorkingSeconds(record?: {
@@ -112,16 +136,24 @@ export function getEffectiveWorkingSeconds(record?: {
   total_break_seconds?: number;
   break_start?: string | null;
 }): number {
-  if (!record) return 0;
-  
-  if (record.check_out || record.status === 'checked_out') {
-    return record.total_working_seconds || 0;
-  }
-
-  if (!record.check_in) return 0;
+  if (!record || !record.check_in) return 0;
 
   const checkInTime = new Date(record.check_in).getTime();
   if (isNaN(checkInTime)) return record.total_working_seconds || 0;
+
+  if (record.check_out || record.status === 'checked_out') {
+    if ((record.total_working_seconds || 0) > 0) {
+      return record.total_working_seconds!;
+    }
+    if (record.check_out) {
+      const checkOutTime = new Date(record.check_out).getTime();
+      if (!isNaN(checkOutTime) && checkOutTime >= checkInTime) {
+        const elapsed = Math.floor((checkOutTime - checkInTime) / 1000);
+        return Math.max(0, elapsed - (record.total_break_seconds || 0));
+      }
+    }
+    return record.total_working_seconds || 0;
+  }
 
   const nowTime = Date.now();
   let totalBreakSec = record.total_break_seconds || 0;
@@ -134,7 +166,9 @@ export function getEffectiveWorkingSeconds(record?: {
   }
 
   const elapsedSec = Math.max(0, Math.floor((nowTime - checkInTime) / 1000));
-  return Math.max(0, elapsedSec - totalBreakSec);
+  const activeSec = Math.max(0, elapsedSec - totalBreakSec);
+  return activeSec;
 }
+
 
 

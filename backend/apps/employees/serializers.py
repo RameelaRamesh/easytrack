@@ -32,6 +32,16 @@ class EmployeeSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
 
+    def validate_email(self, value):
+        if value and value.strip():
+            clean_email = value.strip().lower()
+            qs = User.objects.filter(email__iexact=clean_email)
+            if self.instance and hasattr(self.instance, 'user') and self.instance.user:
+                qs = qs.exclude(pk=self.instance.user.pk)
+            if qs.exists():
+                raise serializers.ValidationError("Email already exists.")
+        return value
+
     def to_internal_value(self, data):
         # Support both flat payload and user_details dictionary payload
         if isinstance(data, dict) and 'user_details' in data and isinstance(data['user_details'], dict):

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../services/api/client';
 import { CalendarDays, RefreshCw, Search } from 'lucide-react';
 import { AttendanceRecord } from '../../types';
-import { formatISTTime, formatDuration, getEffectiveWorkingSeconds } from '../../utils/timeUtils';
+import { formatISTTime, formatDuration, getEffectiveWorkingSeconds, getEffectiveBreakSeconds } from '../../utils/timeUtils';
 import { useAuth } from '../../context/AuthContext';
 import { useDateFilter } from '../../context/DateFilterContext';
 
@@ -176,6 +176,7 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ selfOnly = false
                 status: localRec.status || records[existingIdx].status,
                 check_in: localRec.check_in || records[existingIdx].check_in,
                 check_out: localRec.check_out || records[existingIdx].check_out,
+                break_start: localRec.break_start !== undefined ? localRec.break_start : records[existingIdx].break_start,
                 total_working_seconds: localRec.total_working_seconds ?? records[existingIdx].total_working_seconds,
                 total_break_seconds: localRec.total_break_seconds ?? records[existingIdx].total_break_seconds,
               };
@@ -191,6 +192,7 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ selfOnly = false
                 date: dateStr,
                 check_in: localRec.check_in || new Date().toISOString(),
                 check_out: localRec.check_out || null,
+                break_start: localRec.break_start || null,
                 status: localRec.status,
                 total_break_seconds: localRec.total_break_seconds || 0,
                 total_working_seconds: localRec.total_working_seconds || 0,
@@ -513,7 +515,7 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ selfOnly = false
           <div className="p-4 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-150 dark:border-amber-900/40 rounded-xl">
             <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400">My Break Time</span>
             <p className="text-xl font-extrabold text-amber-800 dark:text-amber-300 mt-1 font-mono">
-              {formatDuration(myRecord?.total_break_seconds)}
+              {formatDuration(getEffectiveBreakSeconds(myRecord))}
             </p>
             <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90 mt-1 font-medium">
               Total break duration logged
@@ -789,7 +791,7 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ selfOnly = false
                     </td>
 
                     <td className="py-3.5 px-4 font-mono text-amber-600 dark:text-amber-400 font-semibold whitespace-nowrap">
-                      {formatDuration(record.total_break_seconds)}
+                      {formatDuration(getEffectiveBreakSeconds(record))}
                     </td>
 
                     <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">

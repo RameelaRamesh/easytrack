@@ -402,7 +402,6 @@ export const DashboardLayout: React.FC = () => {
               { name: 'Business Portfolio', path: '/portfolio', icon: FolderKanban },
               { name: 'Workforce & Access', path: '/employees', icon: Users },
               { name: 'Recruitment', path: '/recruitment', icon: UserPlus },
-              { name: 'Onboarding & Lifecycle', path: '/onboarding', icon: Activity },
               { name: 'Asset Management', path: '/asset-management', icon: Laptop },
             ]
           },
@@ -412,7 +411,6 @@ export const DashboardLayout: React.FC = () => {
               { name: 'Company Profile', path: '/company-profile', icon: Building2 },
               { name: 'Roles & Permissions', path: '/roles-permissions', icon: ShieldCheck },
               { name: 'Audit Logs', path: '/audit', icon: ClipboardList },
-              { name: 'System Settings', path: '/settings', icon: Settings },
             ]
           }
         ];
@@ -452,7 +450,6 @@ export const DashboardLayout: React.FC = () => {
               { name: 'Company Profile', path: '/company-profile', icon: Building2 },
               { name: 'Knowledge Base', path: '/knowledge-base', icon: BookOpen },
               { name: 'Messages', path: '/chat', icon: MessageSquare },
-              { name: 'Settings', path: '/settings', icon: Settings }
             ]
           }
         ];
@@ -502,12 +499,10 @@ export const DashboardLayout: React.FC = () => {
             ...(!user.is_owner ? [{ name: 'Profile Setup', path: '/profile-setup', icon: UserCheck }] : []),
             { name: 'Workforce', path: '/employees', icon: Users },
             { name: 'Recruitment', path: '/recruitment', icon: UserPlus },
-            { name: 'Onboarding & Lifecycle', path: '/onboarding', icon: Activity },
             { name: 'Asset Management', path: '/asset-management', icon: Laptop },
             { name: 'Payroll', path: '/time-payroll?tab=payroll', icon: DollarSign },
             { name: 'Company Profile', path: '/company-profile', icon: Building2 },
             { name: 'Communication', path: '/communication', icon: MessageSquare },
-            { name: 'Administration', path: '/settings', icon: Settings },
           ]
         }
       ];
@@ -809,14 +804,6 @@ export const DashboardLayout: React.FC = () => {
                   </>
                 )}
               </button>
-              <Link
-                to="/settings"
-                onClick={() => setIsMobileDrawerOpen(false)}
-                className="flex items-center w-full px-4 py-2 text-xs font-medium text-slate-400 rounded-lg hover:bg-slate-900 hover:text-white"
-              >
-                <Settings className="mr-3 h-4 w-4 text-slate-500" />
-                Settings Panel
-              </Link>
             </div>
           </aside>
         </div>
@@ -968,15 +955,6 @@ export const DashboardLayout: React.FC = () => {
                     )}
                   </button>
 
-                  {/* Settings shortcut link */}
-                  <Link
-                    to="/settings"
-                    className="flex items-center w-full px-4 py-2 text-xs font-medium text-slate-400 rounded-lg hover:bg-slate-900 hover:text-white"
-                  >
-                    <Settings className="mr-3 h-4 w-4 text-slate-500" />
-                    Settings Panel
-                  </Link>
-
                   {/* Sidebar Logout Button */}
                   <button
                     onClick={logout}
@@ -1005,13 +983,6 @@ export const DashboardLayout: React.FC = () => {
                   >
                     {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4 text-brand-primary" />}
                   </button>
-                  <Link
-                    to="/settings"
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-900 rounded-lg"
-                    title="Settings Panel"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Link>
                   <button
                     onClick={logout}
                     className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg"
