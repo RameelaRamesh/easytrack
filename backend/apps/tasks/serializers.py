@@ -11,7 +11,7 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = '__all__'
-        read_only_fields = ('id', 'organization', 'created_at', 'updated_at', 'created_by', 'updated_by')
+        read_only_fields = ('id', 'key', 'organization', 'created_at', 'updated_at', 'created_by', 'updated_by')
 
     def get_assignee_name(self, obj):
         if obj.assignee:

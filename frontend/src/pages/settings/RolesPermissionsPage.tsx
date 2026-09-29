@@ -233,7 +233,7 @@ export const RolesPermissionsPage: React.FC = () => {
   const roles = [
     { key: 'ceo', name: 'Admin (Finance Access / CEO)' },
     { key: 'operations_head', name: 'Admin (Operations)' },
-    { key: 'tl', name: 'Manager / Team Lead' },
+    { key: 'tl', name: 'Team Lead' },
     { key: 'hr', name: 'HR' },
     { key: 'employee', name: 'Employee' },
     { key: 'qa', name: 'Quality Auditor (QA)' }

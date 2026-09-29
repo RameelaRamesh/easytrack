@@ -47,12 +47,7 @@ export const requestDesktopNotificationPermission = async (): Promise<boolean> =
   if (Notification.permission === 'granted') return true;
   if (Notification.permission === 'denied') return false;
 
-  // Prompt for notification permission at most once per client browser
-  const alreadyPrompted = localStorage.getItem('easytrack_notif_perm_prompted') === 'true';
-  if (alreadyPrompted) return false;
-
   try {
-    localStorage.setItem('easytrack_notif_perm_prompted', 'true');
     const permission = await Notification.requestPermission();
     return permission === 'granted';
   } catch (e) {
@@ -62,6 +57,9 @@ export const requestDesktopNotificationPermission = async (): Promise<boolean> =
 
 export const triggerDesktopNotification = async (title: string, body: string, notificationKey?: string) => {
   if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await requestDesktopNotificationPermission();
+  }
   if (Notification.permission !== 'granted') return;
 
   // If a unique notification key is provided, ensure it is shown ONCE across visits

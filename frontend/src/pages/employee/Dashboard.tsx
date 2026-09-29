@@ -28,19 +28,18 @@ export const Dashboard: React.FC = () => {
   const [blockerForm, setBlockerForm] = useState({ category: 'Portal Down / Login Issue', description: '', work_id: '' });
   const [blockerSubmitting, setBlockerSubmitting] = useState(false);
 
-  // Jira tasks for employee
-  const [jiraTasks, setJiraTasks] = useState<any[]>(() => {
-    const saved = localStorage.getItem('tl_jira_tasks');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, title: 'Verify deliverable submissions for batch B-101', priority: 'high', status: 'in_progress', due_date: 'Today' },
-      { id: 2, title: 'Check daily eligibility discrepancy reports', priority: 'medium', status: 'pending', due_date: 'Tomorrow' }
-    ];
-  });
+  // Live tasks for employee
+  const [jiraTasks, setJiraTasks] = useState<any[]>([]);
 
   const loadEmployeeData = async () => {
     setLoading(true);
     try {
-      const wRes = await apiClient.get<BillingWork[]>('/billing/');
+      const [wRes, tRes] = await Promise.all([
+        apiClient.get<BillingWork[]>('/billing/').catch(() => ({ data: [] })),
+        apiClient.get<any[]>('/tasks/').catch(() => ({ data: [] })),
+      ]);
+
+      setJiraTasks(tRes.data || []);
 
       const myUsername = user?.username || '';
       const myWorks = (wRes.data || []).filter(w => 

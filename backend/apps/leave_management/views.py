@@ -17,12 +17,15 @@ class LeaveRequestViewSet(TenantModelViewSet):
         user = self.request.user
         
         # Scoping:
-        # HR / CEO / Admin / Operations Head can see all.
-        # TL can see their reporting employees' leaves and their own leaves.
+        # HR / CEO / Admin / Operations Head can see all leave requests in org.
+        # TL can see their reporting employees' leaves, department leaves, and their own leaves.
         # Employee can only see their own leaves.
         if user.role in ['admin', 'ceo', 'operations_head', 'hr'] or getattr(user, 'is_owner', False):
             return qs
         elif user.role == 'tl':
+            user_dept = getattr(getattr(user, 'employee_profile', None), 'department', None)
+            if user_dept:
+                return qs.filter(models.Q(user__employee_profile__manager=user) | models.Q(user__employee_profile__department=user_dept) | models.Q(user=user))
             return qs.filter(models.Q(user__employee_profile__manager=user) | models.Q(user=user))
         else:
             return qs.filter(user=user)
@@ -35,7 +38,7 @@ class LeaveRequestViewSet(TenantModelViewSet):
         )
 
     def perform_update(self, serializer):
-        instance = serializer.save()
+        instance = serializer.save(reviewed_by=self.request.user)
         if instance.status == 'approved':
             self._sync_approved_leave(instance)
 
@@ -80,7 +83,7 @@ class LeaveRequestViewSet(TenantModelViewSet):
     @action(detail=True, methods=['post'], url_path='approve')
     def approve(self, request, pk=None):
         leave = self.get_object()
-        if request.user.role not in ['hr', 'ceo', 'admin', 'operations_head']:
+        if request.user.role not in ['hr', 'ceo', 'admin', 'operations_head', 'tl']:
             return Response({"error": "Only authorized higher officials can approve leaves."}, status=status.HTTP_403_FORBIDDEN)
             
         leave.status = 'approved'

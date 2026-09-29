@@ -31,7 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
             has_finance = self.get_finance_access(obj)
             return 'Admin (Finance Access)' if has_finance else 'Admin'
         if obj.role == 'tl':
-            return 'Manager / Team Lead'
+            return 'Team Lead'
         if obj.role == 'hr':
             return 'HR'
         return 'Employee'

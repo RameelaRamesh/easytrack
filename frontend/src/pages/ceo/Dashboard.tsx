@@ -247,10 +247,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ focusAccessControl }) => {
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Financial Profitability & Overhead</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 items-stretch">
           
-          <div className="bg-white dark:bg-slate-850 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between shadow-xs">
-            <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase">Monthly Payroll</p>
-            <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1.5 leading-none">₹0</p>
-            <span className="text-[10px] text-slate-400 mt-1.5 leading-normal break-words">Base workforce salary</span>
+          <div 
+            onClick={() => navigate('/time-payroll?tab=payroll')} 
+            className="bg-white dark:bg-slate-850 p-3.5 sm:p-4 rounded-2xl border border-teal-200 dark:border-teal-900/60 bg-teal-50/20 dark:bg-teal-950/10 flex flex-col justify-between shadow-xs hover:border-teal-400 transition cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-teal-600 dark:text-teal-400 uppercase">Monthly Payroll</p>
+              <ArrowUpRight className="h-4 w-4 text-teal-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </div>
+            <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mt-1.5 leading-none font-mono">
+              ₹{totalPayroll.toLocaleString()}
+            </p>
+            <span className="text-[10px] text-teal-700 dark:text-teal-300 font-bold mt-1.5 leading-normal break-words flex items-center">
+              <span>Open CEO Payroll Portal</span>
+            </span>
           </div>
 
           <div className="bg-white dark:bg-slate-850 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between shadow-xs">

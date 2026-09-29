@@ -400,7 +400,7 @@ export const EmployeesPage: React.FC = () => {
     setUserPassword("PASS-" + Math.floor(100000 + Math.random() * 900000));
     setUserEmploymentType(emp?.employment_type || 'full_time');
     setUserDepartment(emp?.department || (roleToUse === 'hr' ? 'Human Resources' : (roleToUse === 'admin' ? 'Operations' : (roleToUse === 'tl' ? 'Operations' : 'Operations'))));
-    setUserDesignation(emp?.designation || (roleToUse === 'hr' ? 'HR Manager' : (roleToUse === 'tl' ? 'Manager / Team Lead' : (roleToUse === 'admin' ? 'Operations Administrator' : 'Billing Executive'))));
+    setUserDesignation(emp?.designation || (roleToUse === 'hr' ? 'HR Manager' : (roleToUse === 'tl' ? 'Team Lead' : (roleToUse === 'admin' ? 'Operations Administrator' : 'Billing Executive'))));
     setUserReportingManager('');
     setUserWorkTiming(emp?.work_timing || 'Day Shift (08:00 AM - 05:00 PM)');
     setShowAddUserModal(true);
@@ -730,12 +730,12 @@ export const EmployeesPage: React.FC = () => {
     setEditPercentageCgpa(emp.percentage_cgpa || '');
 
     // 4. Bank Account & Payroll Details
-    setEditBaseSalary(emp.base_salary ? String(emp.base_salary) : '35000');
-    setEditBankName(emp.bank_name || 'HDFC Bank');
-    setEditBranchName(emp.branch_name || 'Anna Nagar');
+    setEditBaseSalary(emp.base_salary ? String(emp.base_salary) : '0');
+    setEditBankName(emp.bank_name || '');
+    setEditBranchName(emp.branch_name || '');
     setEditAccountHolder(emp.account_holder || (emp.user_details ? `${emp.user_details.first_name || ''} ${emp.user_details.last_name || ''}`.trim() : ''));
-    setEditAccountNumber(emp.account_number || '501004928371');
-    setEditIfscCode(emp.ifsc_code || 'HDFC0001234');
+    setEditAccountNumber(emp.account_number || '');
+    setEditIfscCode(emp.ifsc_code || '');
 
     // 5. Documents Submitted
     setEditDocPassportPhoto(Boolean(emp.doc_passport_photo));
@@ -967,7 +967,7 @@ export const EmployeesPage: React.FC = () => {
       case 'hr':
         return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 border border-amber-200/60">HR</span>;
       case 'tl':
-        return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-primary-light text-brand-primary dark:bg-teal-950/30 dark:text-teal-300 border border-teal-200/60">Manager / Team Lead</span>;
+        return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-primary-light text-brand-primary dark:bg-teal-950/30 dark:text-teal-300 border border-teal-200/60">Team Lead</span>;
       default:
         return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/60">Employee</span>;
     }
@@ -1022,6 +1022,35 @@ export const EmployeesPage: React.FC = () => {
     }
     return (
       <span className="text-slate-400 text-[11px] font-medium">Not Checked In</span>
+    );
+  };
+
+  const getEmpVolumeStatus = (emp: EmployeeProfile) => {
+    try {
+      const savedList = JSON.parse(localStorage.getItem('easytrack_employee_volume_list') || '{}');
+      const empId = emp.employee_id || emp.user_details?.username;
+      if (empId && savedList[empId]) {
+        return savedList[empId].status;
+      }
+    } catch {}
+    return 'available';
+  };
+
+  const renderVolumeStatusPill = (emp: EmployeeProfile) => {
+    const vol = getEmpVolumeStatus(emp);
+    if (vol === 'no_volume' || vol === 'empty') {
+      return (
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300 border border-rose-200/60 animate-pulse">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+          No Volume
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 border border-emerald-200/60">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        Active Volume
+      </span>
     );
   };
 
@@ -1296,6 +1325,7 @@ export const EmployeesPage: React.FC = () => {
                           <th className="py-3 px-4 whitespace-nowrap">Role</th>
                           <th className="py-3 px-4 whitespace-nowrap">Department</th>
                           <th className="py-3 px-4 whitespace-nowrap">Today's Attendance</th>
+                          <th className="py-3 px-4 whitespace-nowrap">Volume Status</th>
                           <th className="py-3 px-4 whitespace-nowrap">Profile & KYC</th>
                           <th className="py-3 px-4 text-right whitespace-nowrap">Actions</th>
                         </tr>
@@ -1322,6 +1352,9 @@ export const EmployeesPage: React.FC = () => {
                               <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">{emp.department || 'N/A'}</td>
                               <td className="py-3.5 px-4 whitespace-nowrap">
                                 {renderAttendancePill(emp)}
+                              </td>
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                {renderVolumeStatusPill(emp)}
                               </td>
                               <td className="py-3.5 px-4 whitespace-nowrap">
                                 {renderStatusBadge(emp)}
@@ -1676,7 +1709,7 @@ export const EmployeesPage: React.FC = () => {
                         setUserDesignation('HR Manager');
                       } else if (r === 'tl') {
                         setUserDepartment('Operations');
-                        setUserDesignation('Manager / Team Lead');
+                        setUserDesignation('Team Lead');
                       } else {
                         setUserDepartment('Operations');
                         setUserDesignation('Billing Executive');
@@ -1691,7 +1724,7 @@ export const EmployeesPage: React.FC = () => {
                       <option value="hr">HR</option>
                     )}
                     {['ceo', 'operations_head', 'admin', 'hr'].includes(user?.role || '') && (
-                      <option value="tl">Manager / Team Lead</option>
+                      <option value="tl">Team Lead</option>
                     )}
                     <option value="employee">Employee</option>
                   </select>
@@ -1839,7 +1872,7 @@ export const EmployeesPage: React.FC = () => {
                         <option value="Operations Head" />
                         <option value="Operations Administrator" />
                         <option value="HR Manager" />
-                        <option value="Manager / Team Lead" />
+                        <option value="Team Lead" />
                         <option value="Billing Executive" />
                         <option value="QA Lead" />
                       </datalist>

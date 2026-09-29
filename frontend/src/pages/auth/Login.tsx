@@ -193,7 +193,7 @@ export const Login: React.FC = () => {
       case 'admin': return 'Admin';
       case 'ceo': return 'Admin (Finance Access)';
       case 'operations_head': return 'Admin (Operations)';
-      case 'tl': return 'Manager / Team Lead';
+      case 'tl': return 'Team Lead';
       case 'hr': return 'HR';
       case 'employee': return 'Employee';
       default: return role;

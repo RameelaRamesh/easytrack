@@ -178,15 +178,24 @@ export const Dashboard: React.FC = () => {
   // Actions
   const handleRecommendLeave = async (id: number) => {
     try {
-      await apiClient.patch(`/leave/${id}/`, {
-        review_comments: 'Recommended by Team Lead.',
-        reviewer_name: user?.first_name ? `${user.first_name} ${user.last_name}` : 'Team Lead'
+      await apiClient.post(`/leave/${id}/recommend/`, {
+        comments: 'Recommended by Team Lead.'
       });
       setMsg('Leave request successfully recommended to HR!');
       loadTLData();
-    } catch (err) {
-      setMsg('Leave marked as recommended locally.');
-      setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: 'recommended', review_comments: 'Recommended by Team Lead.' } : l));
+    } catch {
+      try {
+        await apiClient.patch(`/leave/${id}/`, {
+          status: 'recommended',
+          review_comments: 'Recommended by Team Lead.',
+          reviewer_name: user?.first_name ? `${user.first_name} ${user.last_name}` : 'Team Lead'
+        });
+        setMsg('Leave request successfully recommended to HR!');
+        loadTLData();
+      } catch (err) {
+        setMsg('Leave marked as recommended locally.');
+        setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: 'recommended', review_comments: 'Recommended by Team Lead.' } : l));
+      }
     }
   };
 
