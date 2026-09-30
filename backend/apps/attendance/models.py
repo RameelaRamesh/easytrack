@@ -39,5 +39,15 @@ class Attendance(TenantModel):
     class Meta:
         unique_together = ('user', 'date')
 
+    def save(self, *args, **kwargs):
+        if self.check_in and self.check_out:
+            total_dur = int((self.check_out - self.check_in).total_seconds())
+            calc_working = max(0, total_dur - (self.total_break_seconds or 0))
+            if self.total_working_seconds == 0 or self.total_working_seconds is None:
+                self.total_working_seconds = calc_working
+            if self.total_working_seconds > 28800:
+                self.overtime_seconds = self.total_working_seconds - 28800
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.user.username} - {self.date} ({self.status})"

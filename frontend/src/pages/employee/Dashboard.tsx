@@ -28,19 +28,18 @@ export const Dashboard: React.FC = () => {
   const [blockerForm, setBlockerForm] = useState({ category: 'Portal Down / Login Issue', description: '', work_id: '' });
   const [blockerSubmitting, setBlockerSubmitting] = useState(false);
 
-  // Jira tasks for employee
-  const [jiraTasks, setJiraTasks] = useState<any[]>(() => {
-    const saved = localStorage.getItem('tl_jira_tasks');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, title: 'Verify deliverable submissions for batch B-101', priority: 'high', status: 'in_progress', due_date: 'Today' },
-      { id: 2, title: 'Check daily eligibility discrepancy reports', priority: 'medium', status: 'pending', due_date: 'Tomorrow' }
-    ];
-  });
+  // Live tasks for employee
+  const [jiraTasks, setJiraTasks] = useState<any[]>([]);
 
   const loadEmployeeData = async () => {
     setLoading(true);
     try {
-      const wRes = await apiClient.get<BillingWork[]>('/billing/');
+      const [wRes, tRes] = await Promise.all([
+        apiClient.get<BillingWork[]>('/billing/').catch(() => ({ data: [] })),
+        apiClient.get<any[]>('/tasks/').catch(() => ({ data: [] })),
+      ]);
+
+      setJiraTasks(tRes.data || []);
 
       const myUsername = user?.username || '';
       const myWorks = (wRes.data || []).filter(w => 
@@ -535,6 +534,25 @@ export const Dashboard: React.FC = () => {
             </h4>
 
             <div className="space-y-2.5">
+              {/* Quick Action 0: Profile Setup */}
+              <Link
+                to="/profile-setup"
+                className="p-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-750 border border-gray-200 dark:border-slate-700 rounded-xl flex items-center justify-between transition group"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 rounded-lg">
+                    <UserCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-white group-hover:text-brand-primary transition">
+                      Profile Setup & KYC
+                    </p>
+                    <p className="text-[10px] text-slate-400">Personal details, bank info & document submission</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition" />
+              </Link>
+
               {/* Quick Action 1: Apply For Leave */}
               <Link
                 to="/my-desk?tab=leave&action=apply"

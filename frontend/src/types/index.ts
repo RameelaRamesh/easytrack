@@ -246,6 +246,7 @@ export interface AttendanceRecord {
   date: string;
   check_in?: string;
   check_out?: string;
+  break_start?: string;
   status: 'working' | 'on_break' | 'checked_out' | 'absent' | 'leave' | 'not_checked_in' | string;
   verification_status?: 'present' | 'absent' | 'not_informed' | 'half_day' | string;
   verified_by_id?: string;

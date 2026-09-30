@@ -47,12 +47,7 @@ export const requestDesktopNotificationPermission = async (): Promise<boolean> =
   if (Notification.permission === 'granted') return true;
   if (Notification.permission === 'denied') return false;
 
-  // Prompt for notification permission at most once per client browser
-  const alreadyPrompted = localStorage.getItem('easytrack_notif_perm_prompted') === 'true';
-  if (alreadyPrompted) return false;
-
   try {
-    localStorage.setItem('easytrack_notif_perm_prompted', 'true');
     const permission = await Notification.requestPermission();
     return permission === 'granted';
   } catch (e) {
@@ -60,8 +55,21 @@ export const requestDesktopNotificationPermission = async (): Promise<boolean> =
   }
 };
 
-export const triggerDesktopNotification = async (title: string, body: string, notificationKey?: string) => {
+if (typeof window !== 'undefined') {
+  const initUserGesturePermission = () => {
+    requestDesktopNotificationPermission();
+    window.removeEventListener('click', initUserGesturePermission);
+    window.removeEventListener('keydown', initUserGesturePermission);
+  };
+  window.addEventListener('click', initUserGesturePermission);
+  window.addEventListener('keydown', initUserGesturePermission);
+}
+
+export const triggerDesktopNotification = async (title: string, body: string, notificationKey?: string, onClick?: () => void) => {
   if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await requestDesktopNotificationPermission();
+  }
   if (Notification.permission !== 'granted') return;
 
   // If a unique notification key is provided, ensure it is shown ONCE across visits
@@ -87,6 +95,7 @@ export const triggerDesktopNotification = async (title: string, body: string, no
     });
     notif.onclick = () => {
       window.focus();
+      if (onClick) onClick();
     };
   } catch (e) {
     console.error("Desktop notification error:", e);

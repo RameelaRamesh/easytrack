@@ -408,42 +408,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ focusAccessControl }) => {
         </div>
       )}
 
-      {/* Tabs strip */}
-      <div 
-        className="flex overflow-x-auto space-x-1 border-b border-gray-200 dark:border-slate-800 pb-px scrollbar-none cursor-grab active:cursor-grabbing select-none"
-        onMouseDown={handleDragScrollMouseDown}
-        onMouseLeave={handleDragScrollMouseLeave}
-        onMouseUp={handleDragScrollMouseUp}
-        onMouseMove={handleDragScrollMouseMove}
-      >
-        {[
-          { id: 'dashboard', label: 'Operations Dashboard', icon: Activity },
-          { id: 'clients', label: 'Clients & Processes', icon: UserSquare2 },
-          { id: 'projects', label: 'Project Campaigns', icon: FolderKanban },
-          { id: 'queues', label: 'Work Operations Queue', icon: ClipboardList },
-          { id: 'teams', label: 'Teams & TL Reports', icon: Users },
-          { id: 'tasks', label: 'Task board', icon: CheckSquare },
-          { id: 'escalations', label: 'Escalations & SLA risks', icon: ShieldAlert },
-          { id: 'documents', label: 'SOP Versioning', icon: BookOpen }
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-semibold text-xs transition whitespace-nowrap ${
-                isActive 
-                  ? 'border-brand-primary text-brand-primary font-bold bg-brand-primary-light/10' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
 
       {/* Tab 1: Dashboard */}
       {activeTab === 'dashboard' && (
@@ -563,7 +527,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ focusAccessControl }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Leave Approval Card */}
           <div 
-            onClick={() => navigate('/employee-attendance')}
+            onClick={() => navigate('/time-payroll?tab=leave')}
             className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-amber-200 dark:border-amber-950/50 shadow-xs hover:shadow-sm transition cursor-pointer group flex items-center justify-between"
           >
             <div className="flex items-center space-x-4">

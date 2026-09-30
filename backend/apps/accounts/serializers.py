@@ -31,7 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
             has_finance = self.get_finance_access(obj)
             return 'Admin (Finance Access)' if has_finance else 'Admin'
         if obj.role == 'tl':
-            return 'Manager / Team Lead'
+            return 'Team Lead'
         if obj.role == 'hr':
             return 'HR'
         return 'Employee'
@@ -63,6 +63,13 @@ class CEORegistrationSerializer(serializers.Serializer):
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("A user with this username already exists.")
+        return value
+
+    def validate_email(self, value):
+        if value and value.strip():
+            clean_email = value.strip().lower()
+            if User.objects.filter(email__iexact=clean_email).exists():
+                raise serializers.ValidationError("Email already exists.")
         return value
 
     def validate_org_name(self, value):

@@ -12,17 +12,21 @@ import { Conversation, Message, EmployeeProfile } from '../../types';
 export const CommunicationHub: React.FC = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'announcements' ? 'announcements' : 'messages';
+  const isOpsOrCeoOrAdmin = ['operations_head', 'ceo', 'admin'].includes(user?.role || '');
+  const initialTab = (!isOpsOrCeoOrAdmin && searchParams.get('tab') === 'announcements') ? 'announcements' : 'messages';
   const [activeTab, setActiveTab] = useState<'messages' | 'announcements'>(initialTab);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam === 'announcements' || tabParam === 'messages') {
-      setActiveTab(tabParam);
+    if (!isOpsOrCeoOrAdmin && tabParam === 'announcements') {
+      setActiveTab('announcements');
+    } else {
+      setActiveTab('messages');
     }
-  }, [searchParams]);
+  }, [searchParams, user]);
 
   const handleTabChange = (t: 'messages' | 'announcements') => {
+    if (isOpsOrCeoOrAdmin && t === 'announcements') return;
     setActiveTab(t);
     setSearchParams({ tab: t }, { replace: true });
   };
@@ -351,22 +355,24 @@ export const CommunicationHub: React.FC = () => {
             <span>Direct & Group Messages</span>
           </button>
 
-          <button
-            onClick={() => handleTabChange('announcements')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'announcements'
-                ? 'bg-white dark:bg-slate-800 text-brand-primary shadow-xs'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-            }`}
-          >
-            <Megaphone className="h-4 w-4" />
-            <span>Announcements Board</span>
-            {announcements.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-brand-primary-light text-brand-primary">
-                {announcements.length}
-              </span>
-            )}
-          </button>
+          {!isOpsOrCeoOrAdmin && (
+            <button
+              onClick={() => handleTabChange('announcements')}
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'announcements'
+                  ? 'bg-white dark:bg-slate-800 text-brand-primary shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <Megaphone className="h-4 w-4" />
+              <span>Announcements Board</span>
+              {announcements.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-brand-primary-light text-brand-primary">
+                  {announcements.length}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

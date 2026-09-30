@@ -4,7 +4,7 @@ from django.db import models
 class User(AbstractUser):
     ROLE_CHOICES = (
         ('admin', 'Admin'),
-        ('tl', 'Manager / Team Lead'),
+        ('tl', 'Team Lead'),
         ('hr', 'HR'),
         ('employee', 'Employee'),
         ('ceo', 'CEO'),  # legacy alias for Admin + Finance Access

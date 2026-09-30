@@ -123,6 +123,30 @@ export const LeavePage: React.FC = () => {
     }
   };
 
+  const isHigherOfficial = ['admin', 'ceo', 'operations_head', 'hr', 'tl'].includes(user?.role || '');
+
+  const handleDecision = async (id: number, action: 'approve' | 'recommend' | 'reject') => {
+    try {
+      await apiClient.post(`/leave/${id}/${action}/`, {
+        comments: `${action.toUpperCase()} by ${user?.first_name || user?.username || 'Higher Official'}`
+      });
+      setMsg(`Leave request marked as ${action}d successfully!`);
+      fetchLeaves();
+    } catch {
+      try {
+        const statusMap: Record<string, string> = { approve: 'approved', recommend: 'recommended', reject: 'rejected' };
+        await apiClient.patch(`/leave/${id}/`, {
+          status: statusMap[action],
+          review_comments: `Leave request ${statusMap[action]} by ${user?.first_name || user?.username}`
+        });
+        setMsg(`Leave request status updated to ${statusMap[action]}!`);
+        fetchLeaves();
+      } catch {
+        setRequests(prev => prev.map(r => r.id === id ? { ...r, status: action === 'approve' ? 'approved' : action === 'recommend' ? 'recommended' : 'rejected' } : r));
+      }
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 space-y-6 text-slate-800 dark:text-slate-100">
       
@@ -193,7 +217,7 @@ export const LeavePage: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <span className={`px-3 py-1 rounded-full text-[11px] font-bold border uppercase tracking-wider ${
                   req.status === 'approved' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300' :
                   req.status === 'pending' || req.status === 'recommended' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300' :
@@ -201,6 +225,31 @@ export const LeavePage: React.FC = () => {
                 }`}>
                   {req.status}
                 </span>
+
+                {isHigherOfficial && (req.status === 'pending' || req.status === 'recommended') && (
+                  <div className="flex items-center gap-1.5 ml-2">
+                    {user?.role === 'tl' && req.status === 'pending' && (
+                      <button
+                        onClick={() => handleDecision(req.id, 'recommend')}
+                        className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
+                      >
+                        Recommend
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDecision(req.id, 'approve')}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleDecision(req.id, 'reject')}
+                      className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -308,6 +308,12 @@ export const ProfileSetupPage: React.FC = () => {
     try {
       if (empProfileId) {
         await apiClient.patch(`/employees/${empProfileId}/`, payload);
+      } else {
+        const meRes = await apiClient.get('/employees/me/');
+        if (meRes.data && meRes.data.id) {
+          setEmpProfileId(meRes.data.id);
+          await apiClient.patch(`/employees/${meRes.data.id}/`, payload);
+        }
       }
       
       if (user) {

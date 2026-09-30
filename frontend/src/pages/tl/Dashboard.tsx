@@ -7,7 +7,8 @@ import {
   ArrowRight, KanbanSquare, CheckSquare, HelpCircle, Activity, Play, Settings, Lock, FileText, Clock, UserPlus
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { EmployeeProfile, BillingWork, Project, Client } from '../../types';
+import { EmployeeProfile, BillingWork, Project, Client, AttendanceRecord } from '../../types';
+import { formatISTTime, formatDuration, getEffectiveWorkingSeconds, getEffectiveBreakSeconds } from '../../utils/timeUtils';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ export const Dashboard: React.FC = () => {
   const [works, setWorks] = useState<BillingWork[]>([]);
   const [leaves, setLeaves] = useState<any[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
 
@@ -92,11 +94,12 @@ export const Dashboard: React.FC = () => {
   const loadTLData = async () => {
     setLoading(true);
     try {
-      const [eRes, wRes, lRes, pRes, aRes] = await Promise.all([
+      const [eRes, wRes, lRes, pRes, attRes, aRes] = await Promise.all([
         apiClient.get<EmployeeProfile[]>('/employees/'),
         apiClient.get<BillingWork[]>('/billing/'),
         apiClient.get<any[]>('/leave/'),
         apiClient.get<Project[]>('/projects/'),
+        apiClient.get<AttendanceRecord[]>('/attendance/').catch(() => ({ data: [] })),
         apiClient.get<any[]>('/audit/').catch(() => ({ data: [] }))
       ]);
 
@@ -104,6 +107,7 @@ export const Dashboard: React.FC = () => {
       setWorks(wRes.data || []);
       setLeaves(lRes.data || []);
       setProjects(pRes.data || []);
+      setAttendanceRecords(attRes.data || []);
       const logs = Array.isArray(aRes.data) ? aRes.data : (aRes.data as any)?.results || [];
       if (logs.length > 0) setAuditLogs(logs);
     } catch (err) {
@@ -147,6 +151,20 @@ export const Dashboard: React.FC = () => {
   // Operational metrics calculations
   const nonCeoEmployees = employees.filter(e => e.user_details?.role !== 'ceo');
   const teamCount = nonCeoEmployees.length;
+  
+  // Real present count from today's attendance records
+  const actualWorkedToday = attendanceRecords.filter(a => 
+    Boolean(a.check_in) || 
+    (a.total_working_seconds || 0) > 0 || 
+    a.status === 'working' || 
+    a.status === 'on_break' || 
+    a.status === 'checked_out' || 
+    a.verification_status === 'present' || 
+    a.verification_status === 'half_day'
+  ).length;
+
+  const presentCount = actualWorkedToday > 0 ? actualWorkedToday : nonCeoEmployees.filter(e => e.status === 'active').length;
+  const absentCount = Math.max(0, teamCount - presentCount);
   const activeCount = nonCeoEmployees.filter(e => e.status === 'active').length;
   const pendingLeavesCount = leaves.filter(l => l.status === 'pending').length;
   const activeQueuesCount = works.length;
@@ -160,15 +178,24 @@ export const Dashboard: React.FC = () => {
   // Actions
   const handleRecommendLeave = async (id: number) => {
     try {
-      await apiClient.patch(`/leave/${id}/`, {
-        review_comments: 'Recommended by Team Lead.',
-        reviewer_name: user?.first_name ? `${user.first_name} ${user.last_name}` : 'Team Lead'
+      await apiClient.post(`/leave/${id}/recommend/`, {
+        comments: 'Recommended by Team Lead.'
       });
       setMsg('Leave request successfully recommended to HR!');
       loadTLData();
-    } catch (err) {
-      setMsg('Leave marked as recommended locally.');
-      setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: 'recommended', review_comments: 'Recommended by Team Lead.' } : l));
+    } catch {
+      try {
+        await apiClient.patch(`/leave/${id}/`, {
+          status: 'recommended',
+          review_comments: 'Recommended by Team Lead.',
+          reviewer_name: user?.first_name ? `${user.first_name} ${user.last_name}` : 'Team Lead'
+        });
+        setMsg('Leave request successfully recommended to HR!');
+        loadTLData();
+      } catch (err) {
+        setMsg('Leave marked as recommended locally.');
+        setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: 'recommended', review_comments: 'Recommended by Team Lead.' } : l));
+      }
     }
   };
 
@@ -430,11 +457,11 @@ export const Dashboard: React.FC = () => {
               </div>
               <div className="mt-2">
                 <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-none font-mono">
-                  <span className="text-emerald-600 dark:text-emerald-400">{activeCount}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{presentCount}</span>
                   <span className="text-slate-300 dark:text-slate-600 mx-1">/</span>
                   <span className="text-slate-400">{teamCount}</span>
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">{activeCount} Present today</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">{presentCount} Present today</p>
               </div>
             </div>
 
@@ -448,11 +475,11 @@ export const Dashboard: React.FC = () => {
               </div>
               <div className="mt-2">
                 <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-none font-mono">
-                  <span className="text-rose-600 dark:text-rose-400">{Math.max(0, teamCount - activeCount)}</span>
+                  <span className="text-rose-600 dark:text-rose-400">{absentCount}</span>
                   <span className="text-slate-300 dark:text-slate-600 mx-1">/</span>
                   <span className="text-slate-400">{teamCount}</span>
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">{Math.max(0, teamCount - activeCount)} Absent today</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">{absentCount} Absent today</p>
               </div>
             </div>
 
@@ -766,21 +793,58 @@ export const Dashboard: React.FC = () => {
             )}
 
 
-            {empDetailTab === 'attendance' && (
-              <div className="space-y-3">
-                <h4 className="font-bold text-slate-900 dark:text-white text-xs">Team punch history</h4>
-                <div className="p-4 border border-gray-150 dark:border-slate-750 rounded-xl space-y-2">
-                  <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-slate-750">
-                    <span className="text-slate-400">Shift</span>
-                    <span className="font-semibold">Day Shift</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-slate-750 font-semibold text-emerald-600">
-                    <span className="text-slate-400">Attendance Status</span>
-                    <span>Present</span>
-                  </div>
+            {empDetailTab === 'attendance' && (() => {
+              const empRecs = attendanceRecords.filter(a => 
+                String(a.user) === String(selectedEmp?.user_details?.id || selectedEmp?.user) ||
+                a.employee_id === selectedEmp?.employee_id
+              );
+              return (
+                <div className="space-y-3">
+                  <h4 className="font-bold text-slate-900 dark:text-white text-xs">Team punch history</h4>
+                  {empRecs.length > 0 ? (
+                    empRecs.slice(0, 5).map(rec => (
+                      <div key={rec.id || rec.date} className="p-4 border border-gray-150 dark:border-slate-750 rounded-xl space-y-2 bg-slate-50/50 dark:bg-slate-900">
+                        <div className="flex justify-between py-1 border-b border-gray-100 dark:border-slate-750 font-bold">
+                          <span className="text-slate-400">Date</span>
+                          <span className="font-mono">{rec.date}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-gray-100 dark:border-slate-750 font-medium">
+                          <span className="text-slate-400">Status</span>
+                          <span className="capitalize font-bold text-emerald-600">{rec.status}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-gray-100 dark:border-slate-750 font-medium">
+                          <span className="text-slate-400">Check-In</span>
+                          <span className="font-mono text-emerald-600">{rec.check_in ? formatISTTime(rec.check_in) : '—'}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-gray-100 dark:border-slate-750 font-medium">
+                          <span className="text-slate-400">Check-Out</span>
+                          <span className="font-mono text-rose-600">{rec.check_out ? formatISTTime(rec.check_out) : '—'}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-gray-100 dark:border-slate-750 font-medium">
+                          <span className="text-slate-400">Break Duration</span>
+                          <span className="font-mono text-amber-600">{formatDuration(getEffectiveBreakSeconds(rec))}</span>
+                        </div>
+                        <div className="flex justify-between py-1 font-medium">
+                          <span className="text-slate-400">Work Duration</span>
+                          <span className="font-mono font-bold">{formatDuration(getEffectiveWorkingSeconds(rec))}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 border border-gray-150 dark:border-slate-750 rounded-xl space-y-2">
+                      <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-slate-750">
+                        <span className="text-slate-400">Shift</span>
+                        <span className="font-semibold">{selectedEmp?.work_timing || 'Day Shift'}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 font-semibold text-slate-500">
+                        <span className="text-slate-400">Attendance Status</span>
+                        <span>{selectedEmp?.status === 'active' ? 'Active Staff' : 'Not Checked In'}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
           </div>
 

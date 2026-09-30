@@ -12,7 +12,7 @@ class AttendanceViewSet(TenantModelViewSet):
     serializer_class = AttendanceSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = super().get_queryset().order_by('-date', '-id')
         user = self.request.user
         
         # Auto-close any unclosed attendance records from past dates
@@ -23,18 +23,23 @@ class AttendanceViewSet(TenantModelViewSet):
             if rec.check_in and not rec.check_out:
                 rec.check_out = rec.check_in + datetime.timedelta(hours=8, minutes=30)
                 dur = int((rec.check_out - rec.check_in).total_seconds())
-                rec.total_working_seconds = max(0, dur - rec.total_break_seconds)
+                rec.total_working_seconds = max(0, dur - (rec.total_break_seconds or 0))
             rec.save()
 
         # If explicit self=true param is passed, filter to request.user only
         if self.request.query_params.get('self') == 'true':
             return qs.filter(user=user)
 
-        # TLs can see their reporting team's attendance. Employees only see their own.
+        # TLs can see their reporting team's, department's, or own attendance. Employees only see their own.
         if user.role in ['admin', 'ceo', 'operations_head', 'hr'] or getattr(user, 'is_owner', False):
             return qs
         elif user.role == 'tl':
-            return qs.filter(user__employee_profile__manager=user)
+            dept = getattr(getattr(user, 'employee_profile', None), 'department', None)
+            from django.db import models
+            q = models.Q(user__employee_profile__manager=user) | models.Q(user=user)
+            if dept:
+                q |= models.Q(user__employee_profile__department=dept)
+            return qs.filter(q)
         else:
             return qs.filter(user=user)
 
@@ -262,7 +267,7 @@ class AttendanceViewSet(TenantModelViewSet):
             record = Attendance.objects.get(user=request.user, date=today)
             if record.break_start:
                 duration = int((now - record.break_start).total_seconds())
-                record.total_break_seconds += max(0, duration)
+                record.total_break_seconds = (record.total_break_seconds or 0) + max(0, duration)
             record.status = 'working'
             record.break_start = None
             record.save()
@@ -310,7 +315,7 @@ class AttendanceViewSet(TenantModelViewSet):
             # If checking out during break, complete the break first
             if record.status == 'on_break' and record.break_start:
                 duration = int((now - record.break_start).total_seconds())
-                record.total_break_seconds += duration
+                record.total_break_seconds = (record.total_break_seconds or 0) + max(0, duration)
                 record.break_start = None
                 
             record.check_out = now
@@ -319,7 +324,7 @@ class AttendanceViewSet(TenantModelViewSet):
             # Calculate working seconds
             if record.check_in:
                 total_duration = int((now - record.check_in).total_seconds())
-                working_duration = total_duration - record.total_break_seconds
+                working_duration = total_duration - (record.total_break_seconds or 0)
                 record.total_working_seconds = max(0, working_duration)
                 
                 # Check for overtime (over 8 hours = 28800 seconds)

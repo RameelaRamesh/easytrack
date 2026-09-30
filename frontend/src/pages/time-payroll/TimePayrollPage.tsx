@@ -8,6 +8,7 @@ import {
   UserCheck, ArrowUpRight
 } from 'lucide-react';
 import { AttendanceRecord, EmployeeProfile } from '../../types';
+import PayrollPage from '../payroll/PayrollPage';
 
 interface TimePayrollPageProps {
   defaultTab?: 'attendance' | 'scheduling' | 'leave' | 'payroll';
@@ -97,17 +98,26 @@ export const TimePayrollPage: React.FC<TimePayrollPageProps> = ({ defaultTab }) 
 
   // Leave Decisions
   const handleLeaveDecision = async (id: number, status: 'approved' | 'rejected') => {
+    const actionEndpoint = status === 'approved' ? 'approve' : 'reject';
     try {
-      await apiClient.patch(`/leave/${id}/`, {
-        status: status,
-        reviewer_name: user?.first_name ? `${user.first_name} ${user.last_name}` : 'HR Manager',
-        review_comments: `Leave request marked as ${status} by People Operations.`
+      await apiClient.post(`/leave/${id}/${actionEndpoint}/`, {
+        comments: `Leave request ${status} by People Operations.`
       });
       showNotice(`Leave request #${id} has been ${status}.`);
       loadAllData();
     } catch {
-      setLeaveRequests(leaveRequests.map(l => l.id === id ? { ...l, status } : l));
-      showNotice(`Leave request #${id} marked as ${status}.`);
+      try {
+        await apiClient.patch(`/leave/${id}/`, {
+          status: status,
+          reviewer_name: user?.first_name ? `${user.first_name} ${user.last_name}` : 'HR Manager',
+          review_comments: `Leave request marked as ${status} by People Operations.`
+        });
+        showNotice(`Leave request #${id} has been ${status}.`);
+        loadAllData();
+      } catch {
+        setLeaveRequests(leaveRequests.map(l => l.id === id ? { ...l, status } : l));
+        showNotice(`Leave request #${id} marked as ${status}.`);
+      }
     }
   };
 
@@ -167,7 +177,11 @@ export const TimePayrollPage: React.FC<TimePayrollPageProps> = ({ defaultTab }) 
 
   const nonCeoEmployees = employees.filter(e => e.user_details?.role !== 'ceo');
   const pendingLeaves = leaveRequests.filter(l => l.status === 'pending');
-  const pendingOT = overtimeApprovals.filter(o => o.status === 'Pending');
+  const isCEO = user?.role === 'ceo' || user?.role === 'admin';
+
+  if (activeTab === 'payroll') {
+    return <PayrollPage />;
+  }
 
   return (
     <div className="space-y-6 text-slate-800 dark:text-slate-100 font-sans">
@@ -221,8 +235,8 @@ export const TimePayrollPage: React.FC<TimePayrollPageProps> = ({ defaultTab }) 
           {[
             { id: 'attendance', label: '1. Attendance Logs & Roll Call', icon: Calendar, count: attendanceRecords.length },
             { id: 'scheduling', label: '2. Shift Roster & Holidays', icon: Clock, count: null },
-            { id: 'leave', label: '3. Leave Management', icon: CalendarDays, count: pendingLeaves.length },
-            { id: 'payroll', label: '4. Payroll & Overtime', icon: DollarSign, count: pendingOT.length }
+            { id: 'leave', label: '3. Leave Management', icon: CalendarDays, count: leaveRequests.filter((l: any) => l.status === 'pending').length },
+            { id: 'payroll', label: '4. Payroll & Overtime', icon: DollarSign, count: overtimeApprovals.filter((o: any) => o.status === 'Pending').length }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -466,17 +480,17 @@ export const TimePayrollPage: React.FC<TimePayrollPageProps> = ({ defaultTab }) 
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right space-x-2">
-                        {l.status === 'pending' ? (
+                        {l.status === 'pending' || l.status === 'recommended' ? (
                           <>
                             <button
                               onClick={() => handleLeaveDecision(l.id, 'approved')}
-                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs"
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
                             >
                               Approve
                             </button>
                             <button
                               onClick={() => handleLeaveDecision(l.id, 'rejected')}
-                              className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold"
+                              className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold cursor-pointer"
                             >
                               Reject
                             </button>
@@ -499,256 +513,7 @@ export const TimePayrollPage: React.FC<TimePayrollPageProps> = ({ defaultTab }) 
         </div>
       )}
 
-      {/* ==================== TAB 4: PAYROLL & OVERTIME ==================== */}
-      {activeTab === 'payroll' && (
-        <div className="space-y-6">
-          
-          {/* Payroll Pipeline Status & Readiness Summary */}
-          <div className="bg-white dark:bg-slate-850 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  Monthly Payroll Cycle
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Pipeline workflow: track salary computations, audit overtime submissions, and lock payouts for disbursal.
-                </p>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={exportPayrollToCSV}
-                  className="px-3.5 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition flex items-center shadow-2xs"
-                >
-                  <Download className="h-3.5 w-3.5 mr-1.5" />
-                  Export Bank CSV
-                </button>
-
-                <button
-                  onClick={() => {
-                    const next = !payrollLocked;
-                    setPayrollLocked(next);
-                    localStorage.setItem('hr_payroll_locked', String(next));
-                    showNotice(next ? 'Payroll calculation locked for monthly bank disbursement.' : 'Payroll unlocked for adjustments.');
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center transition shadow-xs ${
-                    payrollLocked 
-                      ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-                      : 'bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900'
-                  }`}
-                >
-                  {payrollLocked ? <Lock className="h-3.5 w-3.5 mr-1.5" /> : <Unlock className="h-3.5 w-3.5 mr-1.5" />}
-                  {payrollLocked ? 'Payroll Locked (Click to Unlock)' : 'Finalize & Lock Payroll'}
-                </button>
-              </div>
-            </div>
-
-            {/* Pipeline Stage Visualizer */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-150 dark:border-slate-800">
-              <div className="flex items-center justify-between max-w-2xl mx-auto">
-                {[
-                  { name: 'Draft', desc: 'Raw calculations' },
-                  { name: 'Review', desc: `${pendingOT.length} pending items` },
-                  { name: 'Approved', desc: 'Ready to finalize' },
-                  { name: 'Locked', desc: 'Bank dispatch ready' },
-                ].map((step, idx) => {
-                  const currentIdx = payrollLocked ? 3 : (pendingOT.length > 0 ? 1 : 2);
-                  const isCompleted = idx < currentIdx;
-                  const isCurrent = idx === currentIdx;
-
-                  return (
-                    <div key={step.name} className="flex items-center flex-1 last:flex-none">
-                      <div className="flex flex-col items-center text-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition ${
-                          isCompleted
-                            ? 'bg-emerald-600 text-white'
-                            : isCurrent
-                            ? (payrollLocked ? 'bg-amber-600 text-white ring-4 ring-amber-100 dark:ring-amber-950' : 'bg-brand-primary text-white ring-4 ring-brand-primary-light/50')
-                            : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
-                        }`}>
-                          {isCompleted ? <Check className="h-4 w-4" /> : idx + 1}
-                        </div>
-                        <span className={`text-xs font-bold mt-1.5 ${
-                          isCurrent ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'
-                        }`}>
-                          {step.name}
-                        </span>
-                        <span className="text-[10px] text-slate-400 hidden sm:inline">{step.desc}</span>
-                      </div>
-                      {idx < 3 && (
-                        <div className={`flex-1 h-0.5 mx-2 ${
-                          idx < currentIdx ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-800'
-                        }`} />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Counters Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-xl">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Total Headcount</span>
-                <p className="text-xl font-extrabold text-slate-900 dark:text-white mt-1">
-                  {nonCeoEmployees.length} Employees
-                </p>
-              </div>
-
-              <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl">
-                <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Ready for Disbursement</span>
-                <p className="text-xl font-extrabold text-emerald-700 dark:text-emerald-300 mt-1">
-                  {Math.max(0, nonCeoEmployees.length - pendingOT.length)} Ready
-                </p>
-              </div>
-
-              <div className={`p-4 rounded-xl border ${
-                pendingOT.length > 0 
-                  ? 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800/60' 
-                  : 'bg-slate-50 dark:bg-slate-900 border-slate-150 dark:border-slate-800'
-              }`}>
-                <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Needs Review</span>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-xl font-extrabold text-amber-700 dark:text-amber-300">
-                    {pendingOT.length} {pendingOT.length === 1 ? 'Request' : 'Requests'}
-                  </p>
-                  {pendingOT.length > 0 && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200">
-                      Action Required
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Overtime Hours Review */}
-          <div className="bg-white dark:bg-slate-850 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">Overtime Hours Verification</h3>
-                <p className="text-xs text-slate-400">Authorize extra production hours submitted by team leads for month-end payroll inclusion.</p>
-              </div>
-              <span className="text-xs font-bold text-slate-500">Rate: ₹150 / Overtime Hour</span>
-            </div>
-
-            <div className="space-y-3">
-              {overtimeApprovals.map(ot => (
-                <div key={ot.id} className="p-4 border border-slate-150 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900 rounded-xl flex justify-between items-center">
-                  <div className="space-y-1">
-                    <p className="font-bold text-slate-900 dark:text-white">{ot.employee_name} ({ot.employee_id})</p>
-                    <p className="text-xs text-slate-500">Reason: {ot.reason} • Date: {ot.date}</p>
-                    <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400">{ot.hours} Extra Hours (₹{ot.hours * ot.rate} Overtime Payout)</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {ot.status === 'Pending' ? (
-                      <>
-                        <button
-                          onClick={() => handleOvertimeDecision(ot.id, 'Approved')}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold"
-                        >
-                          Approve Overtime
-                        </button>
-                        <button
-                          onClick={() => handleOvertimeDecision(ot.id, 'Rejected')}
-                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    ) : (
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        ot.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700'
-                      }`}>
-                        {ot.status}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Master Payroll Ledger Table */}
-          <div className="bg-white dark:bg-slate-850 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">Organization Monthly Payroll Ledger</h3>
-                <p className="text-xs text-slate-400">Total base salaries, approved overtime payouts, and net compensation.</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => {
-                    const next = !payrollLocked;
-                    setPayrollLocked(next);
-                    localStorage.setItem('hr_payroll_locked', String(next));
-                    showNotice(next ? 'Payroll calculation locked for monthly disbursement.' : 'Payroll unlocked for adjustments.');
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center transition ${
-                    payrollLocked ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'
-                  }`}
-                >
-                  {payrollLocked ? <Lock className="h-3.5 w-3.5 mr-1.5" /> : <Unlock className="h-3.5 w-3.5 mr-1.5" />}
-                  {payrollLocked ? 'Payroll Locked' : 'Finalize & Lock Payroll'}
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 font-bold text-slate-400 uppercase">
-                    <th className="py-3 px-4">Employee ID</th>
-                    <th className="py-3 px-4">Staff Member</th>
-                    <th className="py-3 px-4">Base Salary</th>
-                    <th className="py-3 px-4">Overtime Payout</th>
-                    <th className="py-3 px-4">Incentives</th>
-                    <th className="py-3 px-4">Gross Payable</th>
-                    <th className="py-3 px-4 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {nonCeoEmployees.map(e => {
-                    const base = Number(e.base_salary) || 30000;
-                    const ot = overtimeApprovals
-                      .filter(ot => ot.employee_id === e.employee_id && ot.status === 'Approved')
-                      .reduce((s, o) => s + (o.hours * o.rate), 0);
-                    const inc = e.employee_id === 'EMP-005' ? 2400 : (e.employee_id === 'EMP-001' ? 1800 : 0);
-                    const gross = base + ot + inc;
-
-                    return (
-                      <tr 
-                        key={e.id} 
-                        onClick={() => navigate(`/employees?emp=${encodeURIComponent(e.id)}&tab=5`)}
-                        className="hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition cursor-pointer"
-                        title={`Click row to view payroll details for ${e.user_details?.first_name || e.employee_id}`}
-                      >
-                        <td className="py-3.5 px-4 font-mono font-bold text-rose-600 dark:text-rose-400">{e.employee_id}</td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
-                          {e.user_details ? `${e.user_details.first_name || ''} ${e.user_details.last_name || ''}`.trim() || e.employee_id : e.employee_id}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono">₹{base.toLocaleString()}</td>
-                        <td className="py-3.5 px-4 font-mono text-indigo-600 dark:text-indigo-400 font-bold">+₹{ot.toLocaleString()}</td>
-                        <td className="py-3.5 px-4 font-mono text-emerald-600 font-bold">+₹{inc.toLocaleString()}</td>
-                        <td className="py-3.5 px-4 font-mono font-black text-slate-900 dark:text-white text-sm">₹{gross.toLocaleString()}</td>
-                        <td className="py-3.5 px-4 text-right">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            payrollLocked ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700'
-                          }`}>
-                            {payrollLocked ? 'Ready for Bank Dispatch' : 'Draft Payout'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>
-      )}
 
       {/* Attendance Override Modal */}
       {showCorrectionModal && (

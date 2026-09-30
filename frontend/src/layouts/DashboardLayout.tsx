@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDateFilter } from '../context/DateFilterContext';
 import apiClient from '../services/api/client';
 import EasyTrackLogo from '../components/common/EasyTrackLogo';
+import { ActivityAndVolumeController } from '../components/ActivityAndVolumeController';
 import { formatRelativeTime } from '../utils/timeUtils';
 import { playAnnouncementSound, triggerDesktopNotification, requestDesktopNotificationPermission } from '../utils/soundUtils';
 import { 
@@ -185,37 +186,89 @@ export const DashboardLayout: React.FC = () => {
       const combined = [...savedLocal];
       apiData.forEach((item: any) => {
         if (!combined.some((c: any) => c.id === item.id)) {
-          combined.push(item);
+          combined.unshift(item);
         }
       });
       
+      combined.sort((a: any, b: any) => {
+        const timeA = new Date(a.created_at || a.timestamp || a.date || a.time || 0).getTime() || (typeof a.id === 'number' ? a.id : 0);
+        const timeB = new Date(b.created_at || b.timestamp || b.date || b.time || 0).getTime() || (typeof b.id === 'number' ? b.id : 0);
+        return timeB - timeA;
+      });
+
       setNotifications(combined);
       localStorage.setItem('easytrack_notifications', JSON.stringify(combined));
     } catch (err) {
       try {
         const savedLocal = JSON.parse(localStorage.getItem('easytrack_notifications') || '[]');
+        savedLocal.sort((a: any, b: any) => {
+          const timeA = new Date(a.created_at || a.timestamp || a.date || a.time || 0).getTime() || (typeof a.id === 'number' ? a.id : 0);
+          const timeB = new Date(b.created_at || b.timestamp || b.date || b.time || 0).getTime() || (typeof b.id === 'number' ? b.id : 0);
+          return timeB - timeA;
+        });
         setNotifications(savedLocal);
       } catch {}
     }
   };
 
+  const checkTaskAssignmentsForDesktopNotification = async () => {
+    if (!user) return;
+    try {
+      const res = await apiClient.get<any[]>('/tasks/');
+      const tasks = res.data || [];
+      const notifiedIds: number[] = JSON.parse(localStorage.getItem('easytrack_notified_task_ids') || '[]');
+      let updatedNotified = [...notifiedIds];
+
+      tasks.forEach((t: any) => {
+        const isAssignedToMe = (t.assignee && t.assignee === user.id) ||
+          (t.assignee_id && t.assignee_id === user.id) ||
+          (t.assignee_name && t.assignee_name.toLowerCase().includes(user.username.toLowerCase())) ||
+          (user.role === 'tl' && (t.team_lead === user.id || t.team_lead_name?.toLowerCase().includes(user.username.toLowerCase())));
+
+        if (isAssignedToMe && !updatedNotified.includes(t.id)) {
+          updatedNotified.push(t.id);
+          triggerDesktopNotification(
+            `Task Assigned: ${t.key || 'TSK'}`,
+            `You have been assigned a task: "${t.title}". Status: ${t.status || 'To Do'}`
+          );
+        }
+      });
+
+      if (updatedNotified.length !== notifiedIds.length) {
+        localStorage.setItem('easytrack_notified_task_ids', JSON.stringify(updatedNotified));
+      }
+    } catch (err) {
+      // Offline fallback
+    }
+  };
+
   useEffect(() => {
+    requestDesktopNotificationPermission();
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 5000);
+    checkTaskAssignmentsForDesktopNotification();
+
+    const intervalNotif = setInterval(fetchNotifications, 5000);
+    const intervalTaskNotif = setInterval(checkTaskAssignmentsForDesktopNotification, 6000);
+
     const handleNotifEvent = () => {
       try {
         const savedLocal = JSON.parse(localStorage.getItem('easytrack_notifications') || '[]');
         setNotifications(savedLocal);
       } catch {}
     };
+
     window.addEventListener('easytrack_notifications_updated', handleNotifEvent);
     window.addEventListener('storage', handleNotifEvent);
+    window.addEventListener('easytrack_task_assigned', checkTaskAssignmentsForDesktopNotification);
+
     return () => {
-      clearInterval(interval);
+      clearInterval(intervalNotif);
+      clearInterval(intervalTaskNotif);
       window.removeEventListener('easytrack_notifications_updated', handleNotifEvent);
       window.removeEventListener('storage', handleNotifEvent);
+      window.removeEventListener('easytrack_task_assigned', checkTaskAssignmentsForDesktopNotification);
     };
-  }, []);
+  }, [user]);
 
   // Profile Dropdown state
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -369,16 +422,17 @@ export const DashboardLayout: React.FC = () => {
 
     const baseItems: SidebarItem[] = [
       { name: 'Dashboard', path: dashboardPath, icon: LayoutDashboard },
+      { name: 'Communication', path: '/communication', icon: MessageSquare },
       { name: 'My Desk', path: '/my-desk', icon: Briefcase },
       ...(!user.is_owner ? [{ name: 'Profile Setup', path: '/profile-setup', icon: UserCheck }] : []),
     ];
 
     if (['admin', 'ceo', 'operations_head', 'hr', 'tl'].includes(user.role)) {
-      baseItems.splice(2, 0, { name: 'Attendance', path: '/employee-attendance', icon: CalendarDays });
+      baseItems.splice(3, 0, { name: 'Attendance', path: '/employee-attendance', icon: CalendarDays });
     }
 
     if (['admin', 'ceo', 'operations_head', 'hr'].includes(user.role)) {
-      baseItems.splice(2, 0, { name: 'Workforce & Access', path: '/employees', icon: Users });
+      baseItems.splice(3, 0, { name: 'Workforce & Access', path: '/employees', icon: Users });
     }
 
     const isAdmin = user.role === 'admin' || user.role === 'ceo' || user.role === 'operations_head';
@@ -391,7 +445,7 @@ export const DashboardLayout: React.FC = () => {
             title: "EXECUTIVE SUITE",
             items: [
               { name: 'Dashboard', path: '/ceo-dashboard', icon: LayoutDashboard },
-              { name: 'Communication Hub', path: '/communication', icon: MessageSquare },
+              { name: 'Communication', path: '/communication', icon: MessageSquare },
               { name: 'My Desk', path: '/my-desk', icon: Briefcase },
               ...(!user.is_owner ? [{ name: 'Profile Setup', path: '/profile-setup', icon: UserCheck }] : []),
             ]
@@ -401,8 +455,10 @@ export const DashboardLayout: React.FC = () => {
             items: [
               { name: 'Business Portfolio', path: '/portfolio', icon: FolderKanban },
               { name: 'Workforce & Access', path: '/employees', icon: Users },
+              { name: 'Time & Attendance', path: '/employee-attendance', icon: CalendarDays },
+              { name: 'Payroll & Compensation', path: '/payroll', icon: DollarSign },
+              { name: 'Task Tracking & Assign', path: '/tasks', icon: CheckSquare },
               { name: 'Recruitment', path: '/recruitment', icon: UserPlus },
-              { name: 'Onboarding & Lifecycle', path: '/onboarding', icon: Activity },
               { name: 'Asset Management', path: '/asset-management', icon: Laptop },
             ]
           },
@@ -412,7 +468,6 @@ export const DashboardLayout: React.FC = () => {
               { name: 'Company Profile', path: '/company-profile', icon: Building2 },
               { name: 'Roles & Permissions', path: '/roles-permissions', icon: ShieldCheck },
               { name: 'Audit Logs', path: '/audit', icon: ClipboardList },
-              { name: 'System Settings', path: '/settings', icon: Settings },
             ]
           }
         ];
@@ -421,24 +476,19 @@ export const DashboardLayout: React.FC = () => {
           {
             title: "OPERATIONS OVERVIEW",
             items: [
-              ...baseItems,
-              { name: 'Announcements', path: '/announcements', icon: Megaphone }
+              ...baseItems
             ]
           },
           {
             title: "PORTFOLIO & ASSETS",
             items: [
-              { name: 'Clients', path: '/clients', icon: UserSquare2 },
-              { name: 'Processes', path: '/processes', icon: FileText },
-              { name: 'Projects', path: '/projects', icon: FolderKanban },
               { name: 'Asset Management', path: '/asset-management', icon: Laptop }
             ]
           },
           {
             title: "OPERATIONS & METRICS",
             items: [
-              { name: 'Work Allocation', path: '/billing', icon: ClipboardList },
-              { name: 'Tasks', path: '/tasks', icon: CheckSquare },
+              { name: 'Task Tracking & Assign', path: '/tasks', icon: CheckSquare },
               { name: 'Performance Metrics', path: '/billing-metrics', icon: TrendingUp },
               { name: 'Escalations', path: '/escalations', icon: ShieldAlert },
               { name: 'Quality Trends', path: '/quality-management', icon: ShieldCheck },
@@ -452,7 +502,6 @@ export const DashboardLayout: React.FC = () => {
               { name: 'Company Profile', path: '/company-profile', icon: Building2 },
               { name: 'Knowledge Base', path: '/knowledge-base', icon: BookOpen },
               { name: 'Messages', path: '/chat', icon: MessageSquare },
-              { name: 'Settings', path: '/settings', icon: Settings }
             ]
           }
         ];
@@ -476,17 +525,15 @@ export const DashboardLayout: React.FC = () => {
         {
           title: "OPERATIONS",
           items: [
-            { name: 'Work Allocation', path: '/billing', icon: ClipboardList },
-            { name: 'Tasks', path: '/tasks', icon: CheckSquare },
+            { name: 'Task Tracking & Assign', path: '/tasks', icon: CheckSquare },
             { name: 'Escalations', path: '/escalations', icon: ShieldAlert },
             { name: 'Team Quality', path: '/quality-management', icon: ShieldCheck }
           ]
         },
         {
-          title: "KNOWLEDGE & COMMS",
+          title: "KNOWLEDGE",
           items: [
-            { name: 'Knowledge Base', path: '/knowledge-base', icon: BookOpen },
-            { name: 'Communication', path: '/communication', icon: MessageSquare }
+            { name: 'Knowledge Base', path: '/knowledge-base', icon: BookOpen }
           ]
         }
       ];
@@ -498,16 +545,15 @@ export const DashboardLayout: React.FC = () => {
           title: "HR MANAGEMENT",
           items: [
             { name: 'Dashboard', path: '/hr-dashboard', icon: LayoutDashboard },
+            { name: 'Communication', path: '/communication', icon: MessageSquare },
             { name: 'My Desk', path: '/my-desk', icon: Briefcase },
             ...(!user.is_owner ? [{ name: 'Profile Setup', path: '/profile-setup', icon: UserCheck }] : []),
             { name: 'Workforce', path: '/employees', icon: Users },
+            { name: 'Task Tracking & Assign', path: '/tasks', icon: CheckSquare },
             { name: 'Recruitment', path: '/recruitment', icon: UserPlus },
-            { name: 'Onboarding & Lifecycle', path: '/onboarding', icon: Activity },
             { name: 'Asset Management', path: '/asset-management', icon: Laptop },
             { name: 'Payroll', path: '/time-payroll?tab=payroll', icon: DollarSign },
             { name: 'Company Profile', path: '/company-profile', icon: Building2 },
-            { name: 'Communication', path: '/communication', icon: MessageSquare },
-            { name: 'Administration', path: '/settings', icon: Settings },
           ]
         }
       ];
@@ -518,7 +564,7 @@ export const DashboardLayout: React.FC = () => {
         { name: 'Dashboard', path: '/employee-dashboard', icon: LayoutDashboard },
         { name: 'Communication', path: '/communication', icon: MessageSquare },
         { name: 'My Work Queue', path: '/billing', icon: ClipboardList },
-        { name: 'My Tasks', path: '/tasks', icon: CheckSquare },
+        { name: 'Task Tracking & Assign', path: '/tasks', icon: CheckSquare },
       ];
 
       const selfService = [
@@ -632,13 +678,19 @@ export const DashboardLayout: React.FC = () => {
 
   const userRole = user?.role || '';
 
-  const roleFilteredNotifications = notifications.filter(n => {
-    if (!n.target_roles || !Array.isArray(n.target_roles) || n.target_roles.length === 0) return true;
-    if (n.target_roles.includes('all')) return true;
-    if (n.target_roles.includes(userRole)) return true;
-    if (n.user && String(n.user) === String(user?.id)) return true;
-    return false;
-  });
+  const roleFilteredNotifications = notifications
+    .filter(n => {
+      if (!n.target_roles || !Array.isArray(n.target_roles) || n.target_roles.length === 0) return true;
+      if (n.target_roles.includes('all')) return true;
+      if (n.target_roles.includes(userRole)) return true;
+      if (n.user && String(n.user) === String(user?.id)) return true;
+      return false;
+    })
+    .sort((a, b) => {
+      const timeA = new Date(a.created_at || a.timestamp || a.date || a.time || 0).getTime() || (typeof a.id === 'number' ? a.id : 0);
+      const timeB = new Date(b.created_at || b.timestamp || b.date || b.time || 0).getTime() || (typeof b.id === 'number' ? b.id : 0);
+      return timeB - timeA;
+    });
 
   const unreadNotifCount = roleFilteredNotifications.filter(n => n.unread).length;
 
@@ -809,14 +861,6 @@ export const DashboardLayout: React.FC = () => {
                   </>
                 )}
               </button>
-              <Link
-                to="/settings"
-                onClick={() => setIsMobileDrawerOpen(false)}
-                className="flex items-center w-full px-4 py-2 text-xs font-medium text-slate-400 rounded-lg hover:bg-slate-900 hover:text-white"
-              >
-                <Settings className="mr-3 h-4 w-4 text-slate-500" />
-                Settings Panel
-              </Link>
             </div>
           </aside>
         </div>
@@ -968,15 +1012,6 @@ export const DashboardLayout: React.FC = () => {
                     )}
                   </button>
 
-                  {/* Settings shortcut link */}
-                  <Link
-                    to="/settings"
-                    className="flex items-center w-full px-4 py-2 text-xs font-medium text-slate-400 rounded-lg hover:bg-slate-900 hover:text-white"
-                  >
-                    <Settings className="mr-3 h-4 w-4 text-slate-500" />
-                    Settings Panel
-                  </Link>
-
                   {/* Sidebar Logout Button */}
                   <button
                     onClick={logout}
@@ -1005,13 +1040,6 @@ export const DashboardLayout: React.FC = () => {
                   >
                     {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4 text-brand-primary" />}
                   </button>
-                  <Link
-                    to="/settings"
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-900 rounded-lg"
-                    title="Settings Panel"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Link>
                   <button
                     onClick={logout}
                     className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg"
@@ -1299,6 +1327,9 @@ export const DashboardLayout: React.FC = () => {
               </div>
             )}
 
+            {/* Volume Status Toggle & Activity Verification Ping Controller */}
+            <ActivityAndVolumeController attendanceState={attendanceState} />
+
             {/* Notification bell and badge */}
             <div className="relative">
               <button
@@ -1419,7 +1450,7 @@ export const DashboardLayout: React.FC = () => {
                   <div className="px-4 py-2.5 border-b border-gray-150 dark:border-slate-750">
                     <p className="font-bold text-slate-900 dark:text-white">{user?.first_name} {user?.last_name}</p>
                     <p className="text-[10px] text-slate-450">{user?.email}</p>
-                    <p className="text-[10px] text-brand-primary font-semibold mt-0.5 capitalize">{user?.display_role || (user?.role === 'admin' ? (user?.finance_access ? 'Admin (Finance Access)' : 'Admin') : (user?.role === 'tl' ? 'Manager / Team Lead' : user?.role?.replace('_', ' ')))}</p>
+                    <p className="text-[10px] text-brand-primary font-semibold mt-0.5 capitalize">{user?.display_role || (user?.role === 'admin' ? (user?.finance_access ? 'Admin (Finance Access)' : 'Admin') : (user?.role === 'tl' ? 'Team Lead' : user?.role?.replace('_', ' ')))}</p>
                   </div>
                   {!user?.is_owner && (
                     <Link
@@ -1519,7 +1550,7 @@ export const DashboardLayout: React.FC = () => {
               </div>
               <div>
                 <p className="text-[10px] text-slate-400 uppercase">Authority Role</p>
-                <p className="text-slate-800 dark:text-slate-200 capitalize mt-0.5 font-bold">{user?.display_role || (user?.role === 'admin' ? (user?.finance_access ? 'Admin (Finance Access)' : 'Admin') : (user?.role === 'tl' ? 'Manager / Team Lead' : user?.role?.replace('_', ' ')))}</p>
+                <p className="text-slate-800 dark:text-slate-200 capitalize mt-0.5 font-bold">{user?.display_role || (user?.role === 'admin' ? (user?.finance_access ? 'Admin (Finance Access)' : 'Admin') : (user?.role === 'tl' ? 'Team Lead' : user?.role?.replace('_', ' ')))}</p>
               </div>
             </div>
             <div className="flex justify-end p-3 sm:p-4 border-t border-gray-100 dark:border-slate-750 bg-slate-50 dark:bg-slate-900/60 shrink-0">

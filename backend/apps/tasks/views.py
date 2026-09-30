@@ -5,6 +5,7 @@ from django.utils import timezone
 from apps.core.views import TenantModelViewSet
 from .models import Task
 from .serializers import TaskSerializer
+from apps.notifications.models import Notification
 
 class TaskViewSet(TenantModelViewSet):
     queryset = Task.objects.all().order_by('-created_at')
@@ -34,11 +35,13 @@ class TaskViewSet(TenantModelViewSet):
         
         # Auto-generate key if not given
         key = self.request.data.get('key')
-        if not key and org:
-            count = Task.objects.filter(organization=org).count() + 1
-            key = f"TSK-{count:03d}"
-        elif not key:
-            key = f"TSK-{timezone.now().strftime('%M%S')}"
+        if not key:
+            total_count = Task.objects.count() + 1
+            key = f"TSK-{total_count:03d}"
+            # Guarantee uniqueness if key already exists
+            while Task.objects.filter(key=key).exists():
+                total_count += 1
+                key = f"TSK-{total_count:03d}"
 
         initial_history = [{
             'action': 'Created',
@@ -47,18 +50,39 @@ class TaskViewSet(TenantModelViewSet):
             'details': f"Task created with status '{serializer.validated_data.get('status', 'todo')}'."
         }]
 
-        serializer.save(
+        task_instance = serializer.save(
             organization=org,
             reporter=user,
             key=key,
             activity_history=initial_history
         )
 
+        assignee = task_instance.assignee or task_instance.team_lead
+        if assignee:
+            try:
+                Notification.objects.create(
+                    organization=org,
+                    created_by=user,
+                    title=f"Task Assigned: {task_instance.key}",
+                    desc=f"You have been assigned task: {task_instance.title}",
+                    type="task_assignment",
+                    details={
+                        "task_id": task_instance.id,
+                        "task_key": task_instance.key,
+                        "assignee_id": assignee.id,
+                        "assignee_role": getattr(assignee, 'role', '')
+                    }
+                )
+            except Exception:
+                pass
+
     def perform_update(self, serializer):
         user = self.request.user
         instance = serializer.instance
         old_status = instance.status
+        old_assignee = instance.assignee
         new_status = serializer.validated_data.get('status', old_status)
+        new_assignee = serializer.validated_data.get('assignee', old_assignee)
 
         history = list(instance.activity_history or [])
         if old_status != new_status:
@@ -69,7 +93,26 @@ class TaskViewSet(TenantModelViewSet):
                 'details': f"Status transitioned from '{old_status}' to '{new_status}'."
             })
 
-        serializer.save(activity_history=history)
+        updated_task = serializer.save(activity_history=history)
+
+        if new_assignee and new_assignee != old_assignee:
+            try:
+                org = getattr(user, 'organization', None)
+                Notification.objects.create(
+                    organization=org,
+                    created_by=user,
+                    title=f"Task Assigned: {updated_task.key}",
+                    desc=f"You have been assigned task: {updated_task.title}",
+                    type="task_assignment",
+                    details={
+                        "task_id": updated_task.id,
+                        "task_key": updated_task.key,
+                        "assignee_id": new_assignee.id,
+                        "assignee_role": getattr(new_assignee, 'role', '')
+                    }
+                )
+            except Exception:
+                pass
 
     @action(detail=True, methods=['post'], url_path='add-comment')
     def add_comment(self, request, pk=None):
