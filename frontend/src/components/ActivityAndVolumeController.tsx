@@ -22,8 +22,8 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
 
   // Activity Verification States
   const [showPingModal, setShowPingModal] = useState(false);
-  const [missedCount, setMissedCount] = useState<number>(0); // 0, 1, 2, 3
-  const [countdown, setCountdown] = useState<number>(45); // 45s countdown
+  const [missedCount, setMissedCount] = useState<number>(0); // 0, 1, 2
+  const [countdown, setCountdown] = useState<number>(5); // 5s countdown
   const [isEscalatedLock, setIsEscalatedLock] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -84,7 +84,7 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     
     setMissedCount(0);
-    setCountdown(45);
+    setCountdown(5);
     showToast("✅ Response logged: Active");
 
     try {
@@ -100,7 +100,7 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
     }
   };
 
-  // Trigger Escalation when 3rd attempt missed
+  // Trigger Escalation when 2nd attempt missed
   const triggerEscalation = async () => {
     setIsEscalatedLock(true);
     setShowPingModal(false);
@@ -112,7 +112,7 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
     // Chrome Notification to HR & User
     triggerDesktopNotification(
       `🚨 INACTIVITY ALERT: Employee ID ${empId}`,
-      `Employee ${empName} (ID: ${empId}) is NOT ACTIVE. 3 consecutive checks missed.`
+      `Employee ${empName} (ID: ${empId}) is NOT ACTIVE. 2 consecutive checks missed.`
     );
 
     // Save in inactive employee alerts for HR Dashboard
@@ -132,7 +132,7 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
 
     try {
       await apiClient.post('/productivity/activity-check/record/', {
-        attempt_number: 3,
+        attempt_number: 2,
         interval_minutes: PING_INTERVAL_MINUTES,
         responded: false,
         escalated: true,
@@ -157,18 +157,18 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
                     localStorage.getItem('announcement_sound_muted') === 'true';
     playAnnouncementSound(isMuted);
     
-    // Chrome Desktop Notification with sound configuration notification (like Communication tab)
+    // Chrome OS Desktop Notification with sound configuration notification (like Communication tab)
     triggerDesktopNotification(
       "Are you active?",
-      `Activity Check (2-Min Check ${attemptNumber}/3): Click this notification to confirm active work status.`,
+      `Activity Check (2-Min Check ${attemptNumber}/2): Click this notification to confirm active work status.`,
       undefined,
       () => {
         handleAcknowledgePing();
       }
     );
 
-    setShowPingModal(false);
-    setCountdown(45);
+    setShowPingModal(true);
+    setCountdown(5);
 
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
 
@@ -176,12 +176,13 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
       setCountdown((prev) => {
         if (prev <= 1) {
           if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+          setShowPingModal(false); // Auto hide notification at the end of 5 sec
           
           // Countdown expired without clicking
           const nextMissed = attemptNumber;
           setMissedCount(nextMissed);
 
-          if (nextMissed >= 3) {
+          if (nextMissed >= 2) {
             triggerEscalation();
           } else {
             try {
@@ -230,7 +231,7 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
   const handleUnlockSession = () => {
     setIsEscalatedLock(false);
     setMissedCount(0);
-    setCountdown(45);
+    setCountdown(5);
     showToast("Session unlocked. Activity tracking reset.");
   };
 
@@ -255,11 +256,6 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
             {volumeStatus === 'available' ? 'Active Volume' : '🔴 No Volume'}
           </span>
         </button>
-
-        {/* Dynamic Status Indicator */}
-        <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 hidden sm:inline">
-          (2-Min Check)
-        </span>
       </div>
 
       {/* Toast Feedback Banner */}
@@ -270,9 +266,37 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
         </div>
       )}
 
+      {/* Floating Chrome Desktop Notification Card (Bottom-Right Corner - Stable No Bounce) */}
+      {showPingModal && !isEscalatedLock && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-white dark:bg-slate-850 rounded-2xl shadow-2xl border-2 border-brand-primary p-4 text-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-750 pb-2">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4 text-brand-primary animate-spin" />
+              <span className="font-extrabold text-slate-900 dark:text-white text-xs">
+                Chrome Notification • Are you active?
+              </span>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 bg-brand-primary-light text-brand-primary font-bold rounded-full">
+              {countdown}s
+            </span>
+          </div>
 
+          <p className="text-slate-650 dark:text-slate-300 font-medium leading-relaxed">
+            Activity Check (2-Min Check {missedCount + 1}/2): Please confirm active work status.
+          </p>
 
-      {/* 3rd Attempt Lock Screen Overlay */}
+          <div className="flex justify-end space-x-2 pt-1">
+            <button
+              onClick={handleAcknowledgePing}
+              className="px-4 py-1.5 bg-brand-primary hover:bg-brand-primary-hover text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+            >
+              Yes, I'm Active
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 2nd Attempt Lock Screen Overlay */}
       {isEscalatedLock && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-rose-950/80 backdrop-blur-md">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-lg w-full p-8 border-4 border-rose-600 text-center space-y-6">
@@ -292,7 +316,7 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
             <div className="bg-rose-50 dark:bg-rose-950/40 p-4 rounded-2xl border border-rose-200 dark:border-rose-800 text-left text-xs font-medium text-slate-700 dark:text-slate-300 space-y-2">
               <p className="font-bold text-rose-700 dark:text-rose-300">🚨 Alert Details:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Failed 3 consecutive 2-minute activity checks.</li>
+                <li>Failed 2 consecutive 2-minute activity checks.</li>
                 <li>Reflected on HR Dashboard: **Employee ID: {empId} | Status: Not Active**.</li>
                 <li>Chrome Notification dispatched to HR & Management.</li>
               </ul>

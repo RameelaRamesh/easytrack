@@ -304,6 +304,28 @@ export const DashboardLayout: React.FC = () => {
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const activeUnreadMsgCount = location.pathname === '/chat' ? 0 : unreadMessageCount;
 
+  // Floating Message Notification Popup Card state (Bottom-Right Corner like AFK)
+  const [messagePopup, setMessagePopup] = useState<{ title: string; desc: string } | null>(null);
+
+  const triggerMessagePopup = (title: string, desc: string) => {
+    setMessagePopup({ title, desc });
+    setTimeout(() => {
+      setMessagePopup(null);
+    }, 5000);
+  };
+
+  useEffect(() => {
+    const handleMsgPopupEvent = (e: any) => {
+      if (e.detail?.title && e.detail?.desc) {
+        triggerMessagePopup(e.detail.title, e.detail.desc);
+      }
+    };
+    window.addEventListener('easytrack_trigger_message_popup', handleMsgPopupEvent as any);
+    return () => {
+      window.removeEventListener('easytrack_trigger_message_popup', handleMsgPopupEvent as any);
+    };
+  }, []);
+
   useEffect(() => {
     // Initialize Theme
     if (theme === 'dark') {
@@ -314,21 +336,39 @@ export const DashboardLayout: React.FC = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Fetch conversations count to check for new messages
+  // Fetch conversations count to check for new messages across all portals
   const fetchConversationsCount = async () => {
     try {
       const res = await apiClient.get<any[]>('/messages/conversations/');
       const totalUnread = res.data.reduce((sum: number, c: any) => sum + (c.unread_count || 0), 0);
       
-      // Play chime & trigger desktop notification if unread message count increases
+      // Play chime, trigger desktop notification & floating popup when receiver gets a new message
       if (totalUnread > unreadMessageCount) {
         const isMasterMuted = localStorage.getItem('easytrack_sound_muted') === 'true' || 
                               localStorage.getItem('message_muted') === 'true';
         playAnnouncementSound(isMasterMuted);
         triggerDesktopNotification(
-          "New Message Received",
-          "You have received a new message on EasyTrack."
+          "💬 New Message Received",
+          "You have received a new message in Communication."
         );
+        triggerMessagePopup("💬 New Message Received", "You have received a new message in Communication.");
+
+        // Add to Bell Icon Notifications list (recent on top for all portals)
+        try {
+          const savedNotifs = JSON.parse(localStorage.getItem('easytrack_notifications') || '[]');
+          const newMsgNotif = {
+            id: Date.now(),
+            type: 'info',
+            title: 'NEW MESSAGE',
+            desc: 'You received a new message in Communication.',
+            unread: true,
+            target_roles: ['all'],
+            created_at: new Date().toISOString()
+          };
+          savedNotifs.unshift(newMsgNotif);
+          localStorage.setItem('easytrack_notifications', JSON.stringify(savedNotifs));
+          window.dispatchEvent(new Event('easytrack_notifications_updated'));
+        } catch {}
       }
       setUnreadMessageCount(totalUnread);
     } catch (err) {
@@ -1797,6 +1837,38 @@ export const DashboardLayout: React.FC = () => {
                 Close Audit
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Bottom-Right Message Notification Card (styled like AFK) */}
+      {messagePopup && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-white dark:bg-slate-850 rounded-2xl shadow-2xl border-2 border-brand-primary p-4 text-xs space-y-2.5 animate-fade-in">
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-750 pb-2">
+            <div className="flex items-center space-x-2">
+              <MessageSquare className="h-4 w-4 text-brand-primary" />
+              <span className="font-extrabold text-slate-900 dark:text-white text-xs">
+                {messagePopup.title}
+              </span>
+            </div>
+            <button 
+              onClick={() => setMessagePopup(null)}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="text-slate-650 dark:text-slate-300 font-medium leading-relaxed">
+            {messagePopup.desc}
+          </p>
+          <div className="flex justify-end pt-1">
+            <Link
+              to="/communication"
+              onClick={() => setMessagePopup(null)}
+              className="px-3.5 py-1.5 bg-brand-primary hover:bg-brand-primary-hover text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+            >
+              Open Communication
+            </Link>
           </div>
         </div>
       )}

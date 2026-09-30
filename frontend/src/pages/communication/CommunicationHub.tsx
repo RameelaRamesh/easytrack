@@ -154,9 +154,10 @@ export const CommunicationHub: React.FC = () => {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !activeConv) return;
+    const sentText = newMessage.trim();
     try {
       const res = await apiClient.post<Message>(`/messages/conversations/${activeConv.id}/messages/`, {
-        content: newMessage,
+        content: sentText,
       });
       setMessages([...messages, res.data]);
       setNewMessage('');
