@@ -55,7 +55,17 @@ export const requestDesktopNotificationPermission = async (): Promise<boolean> =
   }
 };
 
-export const triggerDesktopNotification = async (title: string, body: string, notificationKey?: string) => {
+if (typeof window !== 'undefined') {
+  const initUserGesturePermission = () => {
+    requestDesktopNotificationPermission();
+    window.removeEventListener('click', initUserGesturePermission);
+    window.removeEventListener('keydown', initUserGesturePermission);
+  };
+  window.addEventListener('click', initUserGesturePermission);
+  window.addEventListener('keydown', initUserGesturePermission);
+}
+
+export const triggerDesktopNotification = async (title: string, body: string, notificationKey?: string, onClick?: () => void) => {
   if (!('Notification' in window)) return;
   if (Notification.permission === 'default') {
     await requestDesktopNotificationPermission();
@@ -85,6 +95,7 @@ export const triggerDesktopNotification = async (title: string, body: string, no
     });
     notif.onclick = () => {
       window.focus();
+      if (onClick) onClick();
     };
   } catch (e) {
     console.error("Desktop notification error:", e);

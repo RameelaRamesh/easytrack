@@ -64,12 +64,6 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
       window.dispatchEvent(new Event('easytrack_volume_status_changed'));
 
       if (nextStatus === 'no_volume') {
-        const isMuted = localStorage.getItem('easytrack_sound_muted') === 'true';
-        playAnnouncementSound(isMuted);
-        triggerDesktopNotification(
-          "🔴 No Volume Alert",
-          `Employee ${empName} (ID: ${empId}) pressed NO VOLUME button. HR & Management notified.`
-        );
         showToast("🔴 'No Volume' reported. Muted AFK checks & updated HR.");
         setShowPingModal(false);
       } else {
@@ -154,20 +148,26 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
   // Trigger 2-Minute Activity Check Prompt
   const triggerPingPrompt = (attemptNumber: number) => {
     // Away from Keyboard / AFK MUST NOT WORK when No Volume is pressed or when checked out/on break
-    if (attendanceState !== 'working' || volumeStatus === 'no_volume' || isEscalatedLock) {
+    if (attendanceState === 'on_break' || attendanceState === 'checked_out' || volumeStatus === 'no_volume' || isEscalatedLock) {
       return;
     }
 
-    const isMuted = localStorage.getItem('easytrack_sound_muted') === 'true';
+    const isMuted = localStorage.getItem('easytrack_sound_muted') === 'true' || 
+                    localStorage.getItem('message_muted') === 'true' || 
+                    localStorage.getItem('announcement_sound_muted') === 'true';
     playAnnouncementSound(isMuted);
     
-    // Chrome Notification: "Are you active?"
+    // Chrome Desktop Notification with sound configuration notification (like Communication tab)
     triggerDesktopNotification(
       "Are you active?",
-      `Activity Check (2-Min Check ${attemptNumber}/3): Please respond to confirm active work status.`
+      `Activity Check (2-Min Check ${attemptNumber}/3): Click this notification to confirm active work status.`,
+      undefined,
+      () => {
+        handleAcknowledgePing();
+      }
     );
 
-    setShowPingModal(true);
+    setShowPingModal(false);
     setCountdown(45);
 
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
@@ -177,7 +177,7 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
         if (prev <= 1) {
           if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
           
-          // Countdown expired without clicking "Yes"
+          // Countdown expired without clicking
           const nextMissed = attemptNumber;
           setMissedCount(nextMissed);
 
@@ -203,8 +203,8 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
 
   // Main Activity Verification Timer Loop (Runs every 2 minutes)
   useEffect(() => {
-    // If volume status is 'no_volume', Away From Keyboard checks MUST NOT WORK
-    if (attendanceState !== 'working' || volumeStatus === 'no_volume' || isEscalatedLock) {
+    // If volume status is 'no_volume' or user is on break/checked out, Away From Keyboard checks MUST NOT WORK
+    if (attendanceState === 'on_break' || attendanceState === 'checked_out' || volumeStatus === 'no_volume' || isEscalatedLock) {
       if (nextPingTimerRef.current) clearInterval(nextPingTimerRef.current);
       setShowPingModal(false);
       return;
@@ -270,52 +270,7 @@ export const ActivityAndVolumeController: React.FC<ActivityAndVolumeControllerPr
         </div>
       )}
 
-      {/* Activity Verification Modal (Triggers every 2 minutes) */}
-      {showPingModal && !isEscalatedLock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white dark:bg-slate-850 rounded-2xl shadow-2xl max-w-md w-full p-6 border-2 border-brand-primary/40 space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-750 pb-3">
-              <div className="flex items-center space-x-2">
-                {missedCount === 0 && <Clock className="h-6 w-6 text-brand-primary animate-spin" />}
-                {missedCount === 1 && <AlertTriangle className="h-6 w-6 text-amber-500" />}
-                {missedCount >= 2 && <ShieldAlert className="h-6 w-6 text-rose-600 animate-pulse" />}
-                <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
-                  {missedCount === 0 && "Are you active?"}
-                  {missedCount === 1 && "Warning 1/3: Are you active?"}
-                  {missedCount >= 2 && "Warning 2/3: Inactivity Warning"}
-                </h3>
-              </div>
-              <span className="text-xs font-bold px-2.5 py-1 bg-brand-primary-light text-brand-primary rounded-full">
-                {countdown}s
-              </span>
-            </div>
 
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-relaxed">
-              {missedCount === 0 && "Please confirm that you are currently actively working at your station."}
-              {missedCount === 1 && "⚠️ Warning 1: You missed the 2-minute check. Please click Yes to verify active status."}
-              {missedCount >= 2 && "🚨 Warning 2: Final Warning! A 3rd missed check will send an Inactivity Alert (Employee ID: " + empId + ", Status: Not Active) to HR."}
-            </p>
-
-            <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-1000 ${
-                  missedCount >= 2 ? 'bg-rose-600' : missedCount === 1 ? 'bg-amber-500' : 'bg-brand-primary'
-                }`}
-                style={{ width: `${(countdown / 45) * 100}%` }}
-              />
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                onClick={handleAcknowledgePing}
-                className="w-full sm:w-auto px-8 py-2.5 bg-brand-primary hover:bg-brand-primary-hover text-white rounded-xl text-sm font-black shadow-lg transition-transform active:scale-95 cursor-pointer"
-              >
-                Yes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 3rd Attempt Lock Screen Overlay */}
       {isEscalatedLock && (

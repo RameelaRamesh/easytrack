@@ -186,15 +186,26 @@ export const DashboardLayout: React.FC = () => {
       const combined = [...savedLocal];
       apiData.forEach((item: any) => {
         if (!combined.some((c: any) => c.id === item.id)) {
-          combined.push(item);
+          combined.unshift(item);
         }
       });
       
+      combined.sort((a: any, b: any) => {
+        const timeA = new Date(a.created_at || a.timestamp || a.date || a.time || 0).getTime() || (typeof a.id === 'number' ? a.id : 0);
+        const timeB = new Date(b.created_at || b.timestamp || b.date || b.time || 0).getTime() || (typeof b.id === 'number' ? b.id : 0);
+        return timeB - timeA;
+      });
+
       setNotifications(combined);
       localStorage.setItem('easytrack_notifications', JSON.stringify(combined));
     } catch (err) {
       try {
         const savedLocal = JSON.parse(localStorage.getItem('easytrack_notifications') || '[]');
+        savedLocal.sort((a: any, b: any) => {
+          const timeA = new Date(a.created_at || a.timestamp || a.date || a.time || 0).getTime() || (typeof a.id === 'number' ? a.id : 0);
+          const timeB = new Date(b.created_at || b.timestamp || b.date || b.time || 0).getTime() || (typeof b.id === 'number' ? b.id : 0);
+          return timeB - timeA;
+        });
         setNotifications(savedLocal);
       } catch {}
     }
@@ -465,8 +476,7 @@ export const DashboardLayout: React.FC = () => {
           {
             title: "OPERATIONS OVERVIEW",
             items: [
-              ...baseItems,
-              { name: 'Announcements', path: '/announcements', icon: Megaphone }
+              ...baseItems
             ]
           },
           {
@@ -668,13 +678,19 @@ export const DashboardLayout: React.FC = () => {
 
   const userRole = user?.role || '';
 
-  const roleFilteredNotifications = notifications.filter(n => {
-    if (!n.target_roles || !Array.isArray(n.target_roles) || n.target_roles.length === 0) return true;
-    if (n.target_roles.includes('all')) return true;
-    if (n.target_roles.includes(userRole)) return true;
-    if (n.user && String(n.user) === String(user?.id)) return true;
-    return false;
-  });
+  const roleFilteredNotifications = notifications
+    .filter(n => {
+      if (!n.target_roles || !Array.isArray(n.target_roles) || n.target_roles.length === 0) return true;
+      if (n.target_roles.includes('all')) return true;
+      if (n.target_roles.includes(userRole)) return true;
+      if (n.user && String(n.user) === String(user?.id)) return true;
+      return false;
+    })
+    .sort((a, b) => {
+      const timeA = new Date(a.created_at || a.timestamp || a.date || a.time || 0).getTime() || (typeof a.id === 'number' ? a.id : 0);
+      const timeB = new Date(b.created_at || b.timestamp || b.date || b.time || 0).getTime() || (typeof b.id === 'number' ? b.id : 0);
+      return timeB - timeA;
+    });
 
   const unreadNotifCount = roleFilteredNotifications.filter(n => n.unread).length;
 
